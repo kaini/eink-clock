@@ -9,9 +9,4 @@ http://www.nxp.com/documents/user_manual/UM10441.pdf LPC122x manual
 https://community.nxp.com/thread/389139 Using the command line flash programming tool
 https://community.nxp.com/thread/388964 Booting the LPC-Link2
 https://en.wikipedia.org/wiki/List_of_ARM_Cortex-M_development_tools List of ARM Cortex-M development tools
-
-Rust
-
-https://github.com/japaric/xargo xargo
-https://github.com/japaric/rust-cross Valuable information about cross compiling with Rust
-
+https://eewiki.net/display/microcontroller/Getting+Started+with+NXP's+LPC11XX+Cortex-M0+ARM+Microcontrollers#GettingStartedwithNXP%27sLPC11XXCortex-M0ARMMicrocontrollers-CodeExample2:SettingUptheOscillator
