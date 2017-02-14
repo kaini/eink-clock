@@ -1,7 +1,7 @@
 #include "dcf77.h"
-#include "hw.h"
 #include "bitops.h"
 #include "debug.h"
+#include "rawhw/hw.h"
 #include <stdbool.h>
 
 // Signal pin. This is CT16B0_CAP0.
