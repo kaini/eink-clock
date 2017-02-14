@@ -1,6 +1,8 @@
 #pragma once
 #include "workarounds.h"
+#include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef enum PRESETCTRL_RST_N {
 	PRESETCTRL_RST_N_ENABLED = 0,
@@ -28,20 +30,20 @@ typedef struct PRESETCTRL_REG {
 	PRESETCTRL_FLASH_OVERRIDE FLASH_OVERRIDE : 1;
 	const unsigned _RES2 : 16;
 } PRESETCTRL_REG;
-_Static_assert(sizeof(PRESETCTRL_REG) == 4, "");
+static_assert(sizeof(PRESETCTRL_REG) == 4, "");
 
 typedef struct SYSPLLCTRL_REG {
 	unsigned MSEL : 5;
 	unsigned PSEL : 2;
 	const unsigned _RES0 : 25;
 } SYSPLLCTRL_REG;
-_Static_assert(sizeof(SYSPLLCTRL_REG) == 4, "");
+static_assert(sizeof(SYSPLLCTRL_REG) == 4, "");
 
 typedef struct SYSPLLSTAT_REG {
 	const bool LOCK : 1;
 	const unsigned _RES0 : 31;
 } SYSPLLSTAT_REG;
-_Static_assert(sizeof(SYSPLLSTAT_REG) == 4, "");
+static_assert(sizeof(SYSPLLSTAT_REG) == 4, "");
 
 typedef enum SYSOSCCTRL_FREQRANGE {
 	SYSOSCCTRL_FREQRANGE_1_20_MHZ = 0,
@@ -53,7 +55,7 @@ typedef struct SYSOSCCTRL_REG {
 	SYSOSCCTRL_FREQRANGE FREQRANGE : 1;
 	const unsigned _RES0 : 30;
 } SYSOSCCTRL_REG;
-_Static_assert(sizeof(SYSOSCCTRL_REG) == 4, "");
+static_assert(sizeof(SYSOSCCTRL_REG) == 4, "");
 
 typedef enum SYSPLLCLKSEL_SEL {
 	SYSPLLCLKSEL_SEL_IRC = 0,
@@ -64,13 +66,13 @@ typedef struct SYSPLLCLKSEL_REG {
 	SYSPLLCLKSEL_SEL SEL : 2;
 	const unsigned _RES0 : 30;
 } SYSPLLCLKSEL_REG;
-_Static_assert(sizeof(SYSPLLCLKSEL_REG) == 4, "");
+static_assert(sizeof(SYSPLLCLKSEL_REG) == 4, "");
 
 typedef struct SYSPLLCLKUEN_REG {
 	bool ENA : 1;
 	const unsigned _RES0 : 31;
 } SYSPLLCLKUEN_REG;
-_Static_assert(sizeof(SYSPLLCLKUEN_REG) == 4, "");
+static_assert(sizeof(SYSPLLCLKUEN_REG) == 4, "");
 
 typedef enum MAINCLKSEL_SEL {
 	MAINCLKSEL_SEL_IRC = 0,
@@ -83,13 +85,13 @@ typedef struct MAINCLKSEL_REG {
 	MAINCLKSEL_SEL SEL : 2;
 	const unsigned _RES0 : 30;
 } MAINCLKSEL_REG;
-_Static_assert(sizeof(MAINCLKSEL_REG) == 4, "");
+static_assert(sizeof(MAINCLKSEL_REG) == 4, "");
 
 typedef struct MAINCLKUEN_REG {
 	bool ENA : 1;
 	const unsigned _RES0 : 31;
 } MAINCLKUEN_REG;
-_Static_assert(sizeof(MAINCLKUEN_REG) == 4, "");
+static_assert(sizeof(MAINCLKUEN_REG) == 4, "");
 
 typedef struct SYSAHBCLKDIV_REG {
 	unsigned DIV : 8;
@@ -110,7 +112,7 @@ typedef struct PDRUNCFG_REG {
 	bool COMP_PD : 1;
 	const unsigned _RES1 : 16;
 } PDRUNCFG_REG;
-_Static_assert(sizeof(PDRUNCFG_REG) == 4, "");
+static_assert(sizeof(PDRUNCFG_REG) == 4, "");
 
 typedef struct SYSCON_BLOCK {
 	const unsigned _RES0;
@@ -129,15 +131,15 @@ typedef struct SYSCON_BLOCK {
 	const unsigned _RES4[111];
 	PDRUNCFG_REG PDRUNCFG;
 } SYSCON_BLOCK;
-_Static_assert(offsetof(SYSCON_BLOCK, PRESETCTRL)   == 0x004, "");
-_Static_assert(offsetof(SYSCON_BLOCK, SYSPLLCTRL)   == 0x008, "");
-_Static_assert(offsetof(SYSCON_BLOCK, SYSPLLSTAT)   == 0x00C, "");
-_Static_assert(offsetof(SYSCON_BLOCK, SYSOSCCTRL)   == 0x020, "");
-_Static_assert(offsetof(SYSCON_BLOCK, SYSPLLCLKSEL) == 0x040, "");
-_Static_assert(offsetof(SYSCON_BLOCK, SYSPLLCLKUEN) == 0x044, "");
-_Static_assert(offsetof(SYSCON_BLOCK, MAINCLKSEL)   == 0x070, "");
-_Static_assert(offsetof(SYSCON_BLOCK, MAINCLKUEN)   == 0x074, "");
-_Static_assert(offsetof(SYSCON_BLOCK, SYSAHBCLKDIV) == 0x078, "");
-_Static_assert(offsetof(SYSCON_BLOCK, PDRUNCFG)     == 0x238, "");
+static_assert(offsetof(SYSCON_BLOCK, PRESETCTRL)   == 0x004, "");
+static_assert(offsetof(SYSCON_BLOCK, SYSPLLCTRL)   == 0x008, "");
+static_assert(offsetof(SYSCON_BLOCK, SYSPLLSTAT)   == 0x00C, "");
+static_assert(offsetof(SYSCON_BLOCK, SYSOSCCTRL)   == 0x020, "");
+static_assert(offsetof(SYSCON_BLOCK, SYSPLLCLKSEL) == 0x040, "");
+static_assert(offsetof(SYSCON_BLOCK, SYSPLLCLKUEN) == 0x044, "");
+static_assert(offsetof(SYSCON_BLOCK, MAINCLKSEL)   == 0x070, "");
+static_assert(offsetof(SYSCON_BLOCK, MAINCLKUEN)   == 0x074, "");
+static_assert(offsetof(SYSCON_BLOCK, SYSAHBCLKDIV) == 0x078, "");
+static_assert(offsetof(SYSCON_BLOCK, PDRUNCFG)     == 0x238, "");
 
 #define SYSCON (*(volatile SYSCON_BLOCK*)0x40048000)
