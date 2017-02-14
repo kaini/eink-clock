@@ -6,3 +6,5 @@
 #else
 #define DEBUG_PRINT(...) do { } while (0)
 #endif
+
+#define TRACE() do { DEBUG_PRINT("%s (%s:%d)\n", __func__, __FILE__, __LINE__); } while (0)

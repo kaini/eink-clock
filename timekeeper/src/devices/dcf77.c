@@ -68,27 +68,27 @@ static int measure_next_high_ms() {
 }
 
 static void wait_for_module() {
-	DEBUG_PRINT("wait_for_module\n");
+	TRACE();
 	wait_for_raising_edge();
 	wait_for_raising_edge();
 	wait_for_raising_edge();
 }
 
 static void wait_for_signal_start() {
-	DEBUG_PRINT("wait_for_signal_start\n");
+	TRACE();
 	while (measure_next_low_ms() < 1600)
 		;
 }
 
 static void receive_payload(bool result[static DCF77_PAYLOAD_BITS]) {
-	DEBUG_PRINT("receive_payload\n");
+	TRACE();
 	for (int i = 0; i < DCF77_PAYLOAD_BITS; ++i) {
 		result[i] = measure_next_high_ms() > 170;
 	}
 }
 
 void dcf77_init() {
-	DEBUG_PRINT("init_dcf77\n");
+	TRACE();
 
 	// Configure SIGNAL pin
 	SET_BITS(SIGNAL_IOCONFIG, 0, 2, 0x3);  // use as CT16B0_CAP0
@@ -107,7 +107,7 @@ void dcf77_init() {
 
 // TODO timeout
 void dcf77_receive(bool payload[static DCF77_PAYLOAD_BITS]) {
-	DEBUG_PRINT("dcf77_receive\n");
+	TRACE();
 	enable_module();
 	wait_for_module();
 	wait_for_signal_start();
