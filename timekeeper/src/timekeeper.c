@@ -1,9 +1,10 @@
 #include "debug.h"
 #include "hw.h"
 #include "bitops.h"
+#include "dcf77.h"
 #include <stdlib.h>
 
-static void init_system_clock() {
+static void system_clock_init() {
 	DEBUG_PRINT("init_clock\n");
 
 	// See Section 4.10.4.1 on how to calculate these values.
@@ -27,7 +28,15 @@ static void init_system_clock() {
 
 int main() {
 	DEBUG_PRINT("Timekeeper\n");
-	init_system_clock();
+	system_clock_init();
+	dcf77_init();
+
+	bool payload[DCF77_PAYLOAD_BITS];
+	dcf77_receive(payload);
+	for (int i = 0; i < DCF77_PAYLOAD_BITS; ++i) {
+		DEBUG_PRINT("%d", payload[i]);
+	}
+	DEBUG_PRINT("\n");
 
 	DEBUG_PRINT("I'm done!\n");
     return EXIT_SUCCESS;

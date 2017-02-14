@@ -1,6 +1,6 @@
 #pragma once
 
-#define BIT_VALUE(VAR, BIT) (VAR & (1u << (BIT)))
+#define BIT_VALUE(VAR, BIT) ((_Bool)(VAR & (1u << (BIT))))
 
 #define SET_BIT(VAR, BIT) do { VAR |= 1u << (BIT); } while (0)
 #define CLEAR_BIT(VAR, BIT) do { VAR &= ~(1u << (BIT)); } while (0)
@@ -11,3 +11,6 @@
 			(VAR & (~(((1u << ((END_BIT) - (START_BIT) + 1)) - 1) << (START_BIT)))) | \
 			(((unsigned)(VALUE)) << (START_BIT)); \
 	} while (0)
+
+#define WRITE_ONE(VAR, BIT) do { VAR = 1u << (BIT); } while (0)
+#define WRITE_ZERO(VAR, BIT) do { VAR = ~(1u << (BIT)); } while (0)
