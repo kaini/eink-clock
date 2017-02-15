@@ -4,3 +4,5 @@
 #ifdef __CDT_PARSER__
 #define _Static_assert(ASSERTION, MESSAGE)
 #endif
+
+#define static_assert _Static_assert

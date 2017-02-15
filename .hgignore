@@ -3,3 +3,4 @@ timekeeper_init/Release
 timekeeper_init/.settings
 timekeeper/target
 timekeeper/.cargo
+timekeeper/.vscode
