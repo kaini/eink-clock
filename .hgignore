@@ -1,4 +1,5 @@
-timekeeper/Debug
-timekeeper/Release
-timekeeper/.settings
-
+timekeeper_init/Debug
+timekeeper_init/Release
+timekeeper_init/.settings
+timekeeper/target
+timekeeper/.cargo

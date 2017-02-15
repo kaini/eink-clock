@@ -2,15 +2,17 @@
 #include "bitops.h"
 #include "debug.h"
 #include "rawhw/hw.h"
+#include "rawhw/ioconfig.h"
+#include "rawhw/gpio.h"
 #include <stdbool.h>
 
 // Signal pin. This is CT16B0_CAP0.
-#define SIGNAL_IOCONFIG (PIO0_11)
+#define SIGNAL_IOCONFIG (IOCONFIG.PIO0_11)
 #define SIGNAL_GPIO (GPIO0)
 #define SIGNAL_BIT (11)
 
 // Power pin. Must be a high drive PIO pin.
-#define POWER_IOCONFIG (PIO0_29)
+#define POWER_IOCONFIG (IOCONFIG.PIO0_29)
 #define POWER_GPIO (GPIO0)
 #define POWER_BIT (29)
 
@@ -91,11 +93,11 @@ void dcf77_init() {
 	TRACE();
 
 	// Configure SIGNAL pin
-	SET_BITS(SIGNAL_IOCONFIG, 0, 2, 0x3);  // use as CT16B0_CAP0
+	SIGNAL_IOCONFIG.FUNC = 3;  // CT16B0_CAP0
 
 	// Configure POWER pin
-	CLEAR_BIT(POWER_IOCONFIG, 4);  // disable pullup
-	SET_BIT(POWER_IOCONFIG, 9);  // high drive mode
+	POWER_IOCONFIG.MODE = 0;
+	POWER_IOCONFIG.DRV = 1;
 	SET_BIT(POWER_GPIO.DIR, POWER_BIT);  // output
 
 	// Setup the counter
