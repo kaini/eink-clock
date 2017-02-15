@@ -1,0 +1,4 @@
+[package]
+name = "my_allocator"
+version = "0.1.0"
+authors = ["Michael Kainer <michael@kainer.io>"]

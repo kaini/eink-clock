@@ -3,7 +3,7 @@
 	<name>timekeeper_init</name>
 	<comment></comment>
 	<projects>
-		<project>rustex</project>
+		<project>timekeeper</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

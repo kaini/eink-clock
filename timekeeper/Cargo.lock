@@ -1,4 +1,11 @@
 [root]
-name = "rustex"
+name = "timekeeper"
+version = "0.1.0"
+dependencies = [
+ "my_allocator 0.1.0",
+]
+
+[[package]]
+name = "my_allocator"
 version = "0.1.0"
 

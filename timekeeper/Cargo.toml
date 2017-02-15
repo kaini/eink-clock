@@ -1,10 +1,10 @@
 [package]
-name = "rustex"
+name = "timekeeper"
 version = "0.1.0"
 authors = ["Michael Kainer <michael@kainer.io>"]
 
 [profile.dev]
-opt-level = 1
+opt-level = 3
 debug = true
 rpath = false
 lto = false
@@ -25,4 +25,5 @@ panic = 'abort'
 name = "timekeeper"
 crate-type = ["staticlib"]
 
-[dependencies]
+[dependencies.my_allocator]
+path = "../my_allocator"
