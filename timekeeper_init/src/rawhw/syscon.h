@@ -1,7 +1,6 @@
 #pragma once
 #include "workarounds.h"
 #include <assert.h>
-#include <stdbool.h>
 #include <stddef.h>
 
 typedef enum PRESETCTRL_RST_N {
@@ -40,7 +39,7 @@ typedef struct SYSPLLCTRL_REG {
 static_assert(sizeof(SYSPLLCTRL_REG) == 4, "");
 
 typedef struct SYSPLLSTAT_REG {
-	const bool LOCK : 1;
+	const unsigned LOCK : 1;
 	const unsigned _RES0 : 31;
 } SYSPLLSTAT_REG;
 static_assert(sizeof(SYSPLLSTAT_REG) == 4, "");
@@ -51,7 +50,7 @@ typedef enum SYSOSCCTRL_FREQRANGE {
 } SYSOSCCTRL_FREQRANGE;
 
 typedef struct SYSOSCCTRL_REG {
-	bool BYPASS : 1;
+	unsigned BYPASS : 1;
 	SYSOSCCTRL_FREQRANGE FREQRANGE : 1;
 	const unsigned _RES0 : 30;
 } SYSOSCCTRL_REG;
@@ -69,7 +68,7 @@ typedef struct SYSPLLCLKSEL_REG {
 static_assert(sizeof(SYSPLLCLKSEL_REG) == 4, "");
 
 typedef struct SYSPLLCLKUEN_REG {
-	bool ENA : 1;
+	unsigned ENA : 1;
 	const unsigned _RES0 : 31;
 } SYSPLLCLKUEN_REG;
 static_assert(sizeof(SYSPLLCLKUEN_REG) == 4, "");
@@ -88,7 +87,7 @@ typedef struct MAINCLKSEL_REG {
 static_assert(sizeof(MAINCLKSEL_REG) == 4, "");
 
 typedef struct MAINCLKUEN_REG {
-	bool ENA : 1;
+	unsigned ENA : 1;
 	const unsigned _RES0 : 31;
 } MAINCLKUEN_REG;
 static_assert(sizeof(MAINCLKUEN_REG) == 4, "");
@@ -100,16 +99,16 @@ typedef struct SYSAHBCLKDIV_REG {
 _Static_assert(sizeof(SYSAHBCLKDIV_REG) == 4, "");
 
 typedef struct PDRUNCFG_REG {
-	bool IRCOUT_PD : 1;
-	bool IRC_PD : 1;
-	bool FLASH_PD : 1;
-	bool BOD_PD : 1;
-	bool ADC_PD : 1;
-	bool SYSOSC_PD : 1;
-	bool WDTOSC_PD : 1;
-	bool SYSPLL_PD : 1;
+	unsigned IRCOUT_PD : 1;
+	unsigned IRC_PD : 1;
+	unsigned FLASH_PD : 1;
+	unsigned BOD_PD : 1;
+	unsigned ADC_PD : 1;
+	unsigned SYSOSC_PD : 1;
+	unsigned WDTOSC_PD : 1;
+	unsigned SYSPLL_PD : 1;
 	const unsigned _RES0 : 7;
-	bool COMP_PD : 1;
+	unsigned COMP_PD : 1;
 	const unsigned _RES1 : 16;
 } PDRUNCFG_REG;
 static_assert(sizeof(PDRUNCFG_REG) == 4, "");
