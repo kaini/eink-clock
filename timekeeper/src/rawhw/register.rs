@@ -99,7 +99,7 @@ mod test {
     }
 
     #[test]
-    fn set() {
+    fn test_set() {
         unsafe {
             set_v::test::set(2);
             assert_eq!(SET_V, 0b1001);
@@ -113,7 +113,7 @@ mod test {
     }
 
     #[test]
-    fn get() {
+    fn test_get() {
         unsafe {
             assert_eq!(get_v::test::get(), 0b1101);
         }
