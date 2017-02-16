@@ -12,7 +12,7 @@ macro_rules! counter_register {
                     6, cr2int, bool;
                     7, cr3int, bool;
                 }
-                tcr  ($address + 0x04) => {
+                tcr  ($address + 0x04), andmask 0b11 => {
                     0, cen, bool;
                     1, crst, bool;
                 }
@@ -25,7 +25,7 @@ macro_rules! counter_register {
                 pc   ($address + 0x10) => {
                     0,15, pc, u16;
                 }
-                mcr  ($address + 0x14) => {
+                mcr  ($address + 0x14), andmask 0b111111111111 => {
                     0, mr0i, bool;
                     1, mr0r, bool;
                     2, mr0s, bool;
@@ -39,19 +39,11 @@ macro_rules! counter_register {
                     10, mr3r, bool;
                     11, mr3s, bool;
                 }
-                mr0  ($address + 0x18) => {
-                    0,15, match_, u16;
-                }
-                mr1  ($address + 0x1C) => {
-                    0,15, match_, u16;
-                }
-                mr2  ($address + 0x20) => {
-                    0,15, match_, u16;
-                }
-                mr3  ($address + 0x24) => {
-                    0,15, match_, u16;
-                }
-                ccr  ($address + 0x28) => {
+                mr0  ($address + 0x18), andmask 0xFFFF => { full; }
+                mr1  ($address + 0x1C), andmask 0xFFFF => { full; }
+                mr2  ($address + 0x20), andmask 0xFFFF => { full; }
+                mr3  ($address + 0x24), andmask 0xFFFF => { full; }
+                ccr  ($address + 0x28), andmask 0b111111111111 => {
                     0, cap0re, bool;
                     1, cap0fe, bool;
                     2, cap0i, bool;
@@ -65,21 +57,19 @@ macro_rules! counter_register {
                     10, cap3fe, bool;
                     11, cap3i, bool;
                 }
-                cr0  ($address + 0x2C) => {
-                    0,15, cap, u16;
+                cr0  ($address + 0x2C), andmask 0xFFFF => { full; }
+                cr1  ($address + 0x30), andmask 0xFFFF => { full; }
+                cr2  ($address + 0x34), andmask 0xFFFF => { full; }
+                cr3  ($address + 0x38), andmask 0xFFFF => { full; }
+                emr  ($address + 0x3C) => {
+                    // TODO
                 }
-                cr1  ($address + 0x30) => {
-                    0,15, cap, u16;
+                ctcr ($address + 0x70) => {
+                    // TODO
                 }
-                cr2  ($address + 0x34) => {
-                    0,15, cap, u16;
+                pwmc ($address + 0x74) => {
+                    // TODO
                 }
-                cr3  ($address + 0x38) => {
-                    0,15, cap, u16;
-                }
-                // TODO emr  ($address + 0x3C) => { }
-                // TODO ctcr ($address + 0x70) => { }
-                // TODO pwmc ($address + 0x74) => { }
             }
         }
     )
