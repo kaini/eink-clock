@@ -11,9 +11,11 @@ extern crate collections;
 mod debug;
 mod rawhw;
 mod devices;
+mod app;
 
 use devices::cpu::Cpu;
 use devices::dcf77::Dcf77;
+use app::basetime::Basetime;
 
 // Export interrupt handlers (yes this is ugly but whatever)
 pub use devices::dcf77::TIMER16_0_IRQHandler;
@@ -23,10 +25,9 @@ pub extern fn rust_main() -> ! {
     let _cpu = unsafe { Cpu::new() };
     let mut dcf77 = unsafe { Dcf77::new() };
 
-    for b in dcf77.receive().into_iter() {
-        debug_nonl!("{}", *b as i32);
-    }
-    debug!("");
+    let signal = &dcf77.receive();
+    let basetime = Basetime::new(signal);
+    debug!("{:?}", basetime);
 
     panic!("The main function has quit!");
 }
@@ -37,7 +38,7 @@ pub extern fn rust_main() -> ! {
 pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
                                file: &'static str,
                                line: u32) -> ! {
-    let s = collections::fmt::format(format_args!("{} ({}:{})", msg, file, line));
+    let s = collections::fmt::format(format_args!("PANIC: {} ({}:{})", msg, file, line));
     debug::writeln(s.as_str());
     breakpoint!();
     loop { }
