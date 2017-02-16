@@ -22,5 +22,3 @@ macro_rules! gpio_register_block {
 }
 
 gpio_register_block!(gpio0, 0x50000000);
-gpio_register_block!(gpio1, 0x50010000);
-gpio_register_block!(gpio2, 0x50020000);

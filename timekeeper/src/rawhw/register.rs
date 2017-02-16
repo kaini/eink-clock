@@ -1,20 +1,38 @@
+/// Grammar:
+/// 
+/// START = "register_block!" "{" REGISTER* "}"
+/// REGISTER = NAME ADDRESS ["," "andmask" ANDMASK] "=>" "{" FIELD* ";" "}"
+/// FIELD = "full" | START ["," END] "," NAME "," TYPE
+///
+/// Where NAME and TYPE is a Rust identifier. ADDRESS, ANDMASK, START and END
+/// are Rust expressions.
 macro_rules! register_block {
+    () => ();
     (
-        $($name:ident $address:expr => {
-            $($($field:tt),*;)*
-        })*
+        $name:ident $address:expr => { $($($inner:tt),+;)* } $($rest:tt)*
     ) => (
-        $(pub mod $name {
+        pub mod $name {
             #[allow(unused_imports)]
             use super::*;
-            $(register_accessor!($address, $($field),*);)*
-        })*
+            $(register_accessor!($address, !0, $($inner),*);)*
+        }
+        register_block!($($rest)*);
+    );
+    (
+        $name:ident $address:expr, andmask $andmask:expr => { $($($inner:tt),+;)* } $($rest:tt)*
+    ) => (
+        pub mod $name {
+            #[allow(unused_imports)]
+            use super::*;
+            $(register_accessor!($address, $andmask, $($inner),*);)*
+        }
+        register_block!($($rest)*);
     );
 }
 
 macro_rules! register_accessor {
     // Accessors for a value that spans multiple bits
-    ($address:expr, $bit_from:expr, $bit_to:expr, $field:ident, $field_type:ident) => (
+    ($address:expr, $andmask:expr, $bit_from:expr, $bit_to:expr, $field:ident, $field_type:ident) => (
         pub mod $field {
             #[allow(unused_imports)]
             use super::*;
@@ -22,16 +40,16 @@ macro_rules! register_accessor {
             #[allow(dead_code)]
             #[inline(always)]
             pub unsafe fn set(value: $field_type) {
-                let mut reg_value = ::core::ptr::read_volatile($address as *const u32);
+                let mut reg_value = ::core::ptr::read_volatile($address as *const u32) & $andmask;
                 reg_value &= !(((1 << ($bit_to - $bit_from + 1)) - 1) << $bit_from);
                 reg_value |= ((value as u32) & ((1 << ($bit_to - $bit_from + 1)) - 1)) << $bit_from;
-                ::core::ptr::write_volatile($address as *mut u32, reg_value);
+                ::core::ptr::write_volatile($address as *mut u32, reg_value & $andmask);
             }
 
             #[allow(dead_code)]
             #[inline(always)]
             pub unsafe fn get() -> $field_type {
-                let mut value = ::core::ptr::read_volatile($address as *const u32);
+                let mut value = ::core::ptr::read_volatile($address as *const u32) & $andmask;
                 value >>= $bit_from;
                 value &= (1 << ($bit_to - $bit_from + 1)) - 1;
                 register_bits_from_u32!($field_type, value)
@@ -40,26 +58,26 @@ macro_rules! register_accessor {
             #[allow(dead_code)]
             #[inline(always)]
             pub unsafe fn set_fullreg_zero_this_one() {
-                ::core::ptr::write_volatile($address as *mut u32, ((1 << ($bit_to - $bit_from + 1)) - 1) << $bit_from)
+                ::core::ptr::write_volatile($address as *mut u32, (((1 << ($bit_to - $bit_from + 1)) - 1) << $bit_from) & $andmask)
             }
         }
     );
     // Accessors for a single bit value.
-    ($address:expr, $bit:expr, $field:ident, $field_type:ident) => (
-        register_accessor!($address, $bit, $bit, $field, $field_type);
+    ($address:expr, $andmask:expr, $bit:expr, $field:ident, $field_type:ident) => (
+        register_accessor!($address, $andmask, $bit, $bit, $field, $field_type);
     );
     // Accessors for a full register value (32 bit).
-    ($address:expr, full) => (
+    ($address:expr, $andmask:expr, full) => (
         #[allow(dead_code)]
         #[inline(always)]
         pub unsafe fn get() -> u32 {
-            ::core::ptr::read_volatile($address as *const u32)
+            ::core::ptr::read_volatile($address as *const u32) & $andmask
         }
 
         #[allow(dead_code)]
         #[inline(always)]
         pub unsafe fn set(value: u32) {
-            ::core::ptr::write_volatile($address as *mut u32, value)
+            ::core::ptr::write_volatile($address as *mut u32, value & $andmask)
         }
 
         #[allow(dead_code)]

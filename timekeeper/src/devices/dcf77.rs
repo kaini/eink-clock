@@ -69,21 +69,21 @@ impl Dcf77 {
         while !read_volatile(&mut INTERRUPT_HAPPENED) { }
     }
 
-    unsafe fn wait_for_raising_edge(&mut self) -> u16 {
+    unsafe fn wait_for_raising_edge(&mut self) -> u32 {
         counter::ccr::cap0re::set(true);
         counter::ccr::cap0fe::set(false);
         self.wait_for_interrupt();
-        counter::cr0::cap::get()
+        counter::cr0::get()
     }
 
-    unsafe fn wait_for_falling_edge(&mut self) -> u16 {
+    unsafe fn wait_for_falling_edge(&mut self) -> u32 {
         counter::ccr::cap0re::set(false);
         counter::ccr::cap0fe::set(true);
         self.wait_for_interrupt();
-        counter::cr0::cap::get()
+        counter::cr0::get()
     }
 
-    unsafe fn measure_next_low_ms(&mut self) -> u16 {
+    unsafe fn measure_next_low_ms(&mut self) -> u32 {
         counter::tcr::crst::set(true);
         counter::tcr::crst::set(false);
         let fall_time = self.wait_for_falling_edge();
@@ -91,7 +91,7 @@ impl Dcf77 {
         raise_time - fall_time
     }
 
-    unsafe fn measure_next_high_ms(&mut self) -> u16 {
+    unsafe fn measure_next_high_ms(&mut self) -> u32 {
         counter::tcr::crst::set(true);
         counter::tcr::crst::set(false);
         let raise_time = self.wait_for_raising_edge();
