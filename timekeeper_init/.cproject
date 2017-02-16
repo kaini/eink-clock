@@ -82,6 +82,7 @@
 								</option>
 								<option id="gnu.c.link.option.libs.1710754265" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="timekeeper"/>
+									<listOptionValue builtIn="false" value="gcc"/>
 								</option>
 								<option id="gnu.c.link.option.userobjs.1314291032" name="Other objects" superClass="gnu.c.link.option.userobjs"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.393743537" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
@@ -179,6 +180,7 @@
 								</option>
 								<option id="gnu.c.link.option.libs.970336199" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="timekeeper"/>
+									<listOptionValue builtIn="false" value="gcc"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.392459433" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
