@@ -1,6 +1,12 @@
+#include <stdio.h>
 
-extern int rust_main();
+extern void rust_main();
 
 int main() {
-	return rust_main();
+	rust_main();
+	return 0;
+}
+
+void print_string(const char* string, size_t size) {
+	fwrite(string, sizeof(char), size, stdout);
 }
