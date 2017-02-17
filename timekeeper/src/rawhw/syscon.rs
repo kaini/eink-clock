@@ -69,6 +69,9 @@ register_block! {
     sysahbclkdiv 0x40048078 => {
         0,7, div, u8;
     }
+    rtcclkdiv 0x400480A0 => {
+        0,7, div, u8;
+    }
     pdruncfg 0x40048238 => {
         0, ircout_pd, bool;
         1, irc_pd, bool;
