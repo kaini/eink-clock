@@ -5,3 +5,4 @@ pub mod ioconfig;
 pub mod gpio;
 pub mod counter;
 pub mod nvic;
+pub mod rtc;
