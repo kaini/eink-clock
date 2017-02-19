@@ -10,3 +10,7 @@ https://community.nxp.com/thread/389139 Using the command line flash programming
 https://community.nxp.com/thread/388964 Booting the LPC-Link2
 https://en.wikipedia.org/wiki/List_of_ARM_Cortex-M_development_tools List of ARM Cortex-M development tools
 https://eewiki.net/display/microcontroller/Getting+Started+with+NXP's+LPC11XX+Cortex-M0+ARM+Microcontrollers#GettingStartedwithNXP%27sLPC11XXCortex-M0ARMMicrocontrollers-CodeExample2:SettingUptheOscillator
+
+KiCAD
+https://github.com/yaqwsx/Connectors_Hirose.pretty/blob/eb5c6ea4a33d739887769988006a1399055fe6aa/Hirose_FH26-39S-0.3SHW.kicad_mod
+
