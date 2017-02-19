@@ -4,3 +4,4 @@ timekeeper_init/.settings
 timekeeper/target
 timekeeper/.cargo
 timekeeper/.vscode
+kicad/*bak
