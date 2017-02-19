@@ -16,7 +16,7 @@ mod app;
 use devices::cpu::Cpu;
 use devices::dcf77::Dcf77;
 use devices::clock::Clock;
-use app::basetime::Basetime;
+use app::datetime::Datetime;
 
 // Export interrupt handlers (yes this is ugly but whatever)
 pub use devices::dcf77::TIMER16_0_IRQHandler;
