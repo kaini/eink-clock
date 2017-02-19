@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Michael Kainer <michael@kainer.io>"]
 
 [profile.dev]
-opt-level = 3
+opt-level = 's'
 debug = true
 rpath = false
 lto = false
@@ -13,7 +13,7 @@ codegen-units = 1
 panic = 'abort'
 
 [profile.release]
-opt-level = 3
+opt-level = 's'
 debug = false
 rpath = false
 lto = false
