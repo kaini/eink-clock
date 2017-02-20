@@ -961,7 +961,7 @@ U 1 1 58956C8B
 P 5150 5600
 F 0 "RV1" V 4975 5600 50  0000 C CNN
 F 1 "10k" V 5050 5600 50  0000 C CNN
-F 2 "einkclock:Poti_100mil_200mil" H 5150 5600 50  0001 C CNN
+F 2 "Potentiometers:Potentiometer_Trimmer_Bourns_3339W_Vertical" H 5150 5600 50  0001 C CNN
 F 3 "" H 5150 5600 50  0000 C CNN
 	1    5150 5600
 	1    0    0    -1  
