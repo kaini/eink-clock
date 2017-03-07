@@ -1,0 +1,6 @@
+timekeeper/target
+timekeeper/.cargo
+
+.vscode
+*bak
+

@@ -1,37 +1,29 @@
-extern {
-    fn print_string(ptr: *const u8, size: usize);
+#[cfg(debug_assertions)]
+pub unsafe fn write0(ptr: *const u8) {
+    // See newlib for details (libgloss/arm/swi.h)
+    asm!(
+        "bkpt 0xAB"
+        :  // Outputs
+        : "{r0}"(0x04), "{r1}"(ptr)  // Inputs
+        : "r0", "r1", "r2", "r3", "ip", "lr", "memory", "cc"  // Clobbers
+    );
 }
 
-pub fn write(message: &str) {
-    unsafe { print_string(message.as_ptr(), message.len()); }
-}
-
-pub fn writeln(message: &str) {
-    write(message);
-    write("\n");
+#[cfg(not(debug_assertions))]
+pub unsafe fn write0(_ptr: *const u8) {
 }
 
 macro_rules! breakpoint {
-    () => (unsafe { asm!("BKPT" :::: "volatile") })
+    () => (unsafe { asm!("bkpt" :::: "volatile") })
 }
 
 macro_rules! debug {
     ($fmt:expr, $($args:tt)*) => ({
-        let s = ::collections::fmt::format(format_args!($fmt, $($args)*));
-        ::debug::writeln(s.as_str());
+        let s = ::collections::fmt::format(format_args!(concat!($fmt, "\n\0"), $($args)*));
+        unsafe { ::debug::write0(s.as_ptr()); }
     });
     ($msg:expr) => ({
-        ::debug::writeln($msg);
-    });
-}
-
-macro_rules! debug_nonl {
-    ($fmt:expr, $($args:tt)*) => ({
-        let s = ::collections::fmt::format(format_args!($fmt, $($args)*));
-        ::debug::write(s.as_str());
-    });
-    ($msg:expr) => ({
-        ::debug::writeln($msg);
+        debug!("{:?}", $expr);
     });
 }
 
