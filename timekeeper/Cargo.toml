@@ -23,7 +23,7 @@ panic = 'abort'
 
 [lib]
 name = "timekeeper"
-crate-type = ["staticlib"]
+crate-type = ["bin"]
 
-[dependencies.my_allocator]
-path = "../my_allocator"
+[dependencies]
+my_allocator = { path = "../my_allocator" }
