@@ -1,7 +1,0 @@
-timekeeper_init/Debug
-timekeeper_init/Release
-timekeeper_init/.settings
-timekeeper/target
-timekeeper/.cargo
-timekeeper/.vscode
-kicad/*bak

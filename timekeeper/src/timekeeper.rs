@@ -41,12 +41,11 @@ pub fn main(_argc: isize, _argv: *const *const u8) -> isize {
 extern {
     fn __stack_end__();
     fn __checksum__();
-    fn _start();
 }
 
 #[link_section = ".isr_vectors"]
 #[no_mangle]
-pub static ISR_VECTORS: [Option<unsafe extern fn()>; 16] = [
+pub static ISR_VECTORS: [Option<unsafe extern fn()>; 47] = [
     Some(__stack_end__),  // Initial SP
     Some(reset_handler),  // Reset handler
     Some(nmi_handler),  // NMI handler
@@ -63,13 +62,73 @@ pub static ISR_VECTORS: [Option<unsafe extern fn()>; 16] = [
     None,  // Reserved
     Some(default_handler),  // PendSV handler
     Some(default_handler),  // SysTick handler
+
+    Some(default_handler),  // Wakeup 1
+    Some(default_handler),  // Wakeup 2
+    Some(default_handler),  // Wakeup 3
+    Some(default_handler),  // Wakeup 4
+    Some(default_handler),  // Wakeup 5
+    Some(default_handler),  // Wakeup 6
+    Some(default_handler),  // Wakeup 7
+    Some(default_handler),  // Wakeup 8
+    Some(default_handler),  // Wakeup 9
+    Some(default_handler),  // Wakeup 10
+    Some(default_handler),  // Wakeup 11
+    Some(default_handler),  // Wakeup 12
+    Some(default_handler),  // I2C
+    Some(default_handler),  // 16 bit timer 0
+    Some(default_handler),  // 16 bit timer 1
+    Some(default_handler),  // 32 bit timer 0
+    Some(default_handler),  // 32 bit timer 1
+    Some(default_handler),  // SSP
+    Some(default_handler),  // UART0
+    Some(default_handler),  // UART1
+    Some(default_handler),  // Comperators 0, 1
+    Some(default_handler),  // A/D converter
+    Some(default_handler),  // Watchdog timer
+    Some(default_handler),  // Brown out detect
+    None,  // Reserved
+    Some(default_handler),  // PIO INT0
+    Some(default_handler),  // PIO INT1
+    Some(default_handler),  // PIO INT2
+    None,  // Reserved
+    Some(default_handler),  // DMA
+    Some(default_handler),  // RTC
 ];
 
 #[no_mangle]
 pub extern fn reset_handler() {
+    extern {
+        fn _start();
+        static mut __bss_start__: u32;
+        static __bss_size__: u32;
+        static mut __data_start__: u32;
+        static __data_size__: u32;
+        static __data_source_start__: u32;
+    }
+
     unsafe {
+        // Disable watchdog timer. This has to happen immediately after startup.
+        ptr::write_volatile(0x40004000 as *mut u32, 0x00);
+        ptr::write_volatile(0x40004008 as *mut u32, 0xAA);
+        ptr::write_volatile(0x40004008 as *mut u32, 0x55);
+
+        // Zero .bss
+        ptr::write_bytes(
+            &mut __bss_start__,
+            0,
+            &__bss_size__ as *const u32 as usize / 4);
+
+        // Copy .data
+        ptr::copy_nonoverlapping(
+            &__data_source_start__,
+            &mut __data_start__,
+            &__data_size__ as *const u32 as usize / 4);
+
+        // Initialize the C runtime
         _start();
     }
+    panic!("Reset handler has quit");
 }
 
 #[no_mangle]
@@ -84,7 +143,7 @@ pub extern fn hard_fault_handler() {
 
 #[no_mangle]
 pub extern fn default_handler() {
-    panic!("Default ISR handler!");
+    panic!("Default interrupt handler");
 }
 
 #[cfg(not(test))]
@@ -93,29 +152,9 @@ pub extern fn default_handler() {
 pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
                                file: &'static str,
                                line: u32) -> ! {
-    let s = collections::fmt::format(format_args!("PANIC: {} ({}:{})", msg, file, line));
-    debug::writeln(s.as_str());
+    debug!("PANIC: {} ({}:{})", msg, file, line);
     breakpoint!();
-    loop { }
-}
-
-#[cfg(test)]
-extern {
-    fn putchar(chr: i32) -> i32;
-}
-
-#[cfg(test)]
-#[no_mangle]
-pub extern fn print_string(ptr: *const u8, size: usize) {
-    for i in 0..size {
-        unsafe {
-            putchar(*ptr.offset(i as isize) as i32);
-        }
-    }
-}
-
-#[no_mangle]
-pub extern fn print_string(_ptr: *const u8, _size: usize) {
+    loop {}
 }
 
 #[no_mangle]

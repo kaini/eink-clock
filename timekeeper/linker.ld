@@ -6,6 +6,7 @@ MEMORY {
 __stack_start__ = ORIGIN(RAM);
 __stack_size__ = 1K;
 __stack_end__ = __stack_start__ + __stack_size__;
+__stack = __stack_end__;  /* For Newlib's init code */
 
 __bss_size__ = __bss_end__ - __bss_start__;
 
@@ -25,9 +26,8 @@ SECTIONS {
     } >FLASH
 
     .text : ALIGN(4) {
-        *(.init)
-        *(.fini)
-        
+        KEEP(*(SORT_NONE(.init)))
+        KEEP(*(SORT_NONE(.fini)))
         *(.text .text.*)
     } >FLASH
 
@@ -44,6 +44,7 @@ SECTIONS {
 
     .data __bss_end__ : ALIGN(4) {
         __data_start__ = .;
+        __data_source_start__ = LOADADDR(.data);
         *(.data .data.*)
         . = ALIGN(4);
         __data_end__ = .;
