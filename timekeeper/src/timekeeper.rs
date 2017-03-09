@@ -98,9 +98,9 @@ pub extern fn reset_handler() {
     extern {
         fn _start();
         static mut __bss_start__: u32;
-        static __bss_size__: u32;
+        static mut __bss_end__: u32;
         static mut __data_start__: u32;
-        static __data_size__: u32;
+        static mut __data_end__: u32;
         static __data_source_start__: u32;
     }
 
@@ -111,16 +111,12 @@ pub extern fn reset_handler() {
         ptr::write_volatile(0x40004008 as *mut u32, 0x55);
 
         // Zero .bss
-        ptr::write_bytes(
-            &mut __bss_start__,
-            0,
-            &__bss_size__ as *const u32 as usize / 4);
+        let bss_size = (&__bss_end__ as *const u32 as usize) - (&__bss_start__ as *const u32 as usize);
+        ptr::write_bytes(&mut __bss_start__, 0, bss_size / 4);
 
         // Copy .data
-        ptr::copy_nonoverlapping(
-            &__data_source_start__,
-            &mut __data_start__,
-            &__data_size__ as *const u32 as usize / 4);
+        let data_size = (&__data_end__ as *const u32 as usize) - (&__data_start__ as *const u32 as usize);
+        ptr::copy_nonoverlapping(&__data_source_start__, &mut __data_start__, data_size / 4);
 
         // Initialize the C runtime
         _start();

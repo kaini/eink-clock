@@ -3,19 +3,7 @@ MEMORY {
     RAM (xrw) : ORIGIN = 0x10000000, LENGTH = 8K
 }
 
-__stack_start__ = ORIGIN(RAM);
-__stack_size__ = 1K;
-__stack_end__ = __stack_start__ + __stack_size__;
 __stack = __stack_end__;  /* For Newlib's init code */
-
-__bss_size__ = __bss_end__ - __bss_start__;
-
-__data_size__ = __data_end__ - __data_start__;
-
-__heap_start__ = __data_end__;
-__heap_size__ = __heap_end__ - __heap_start__;
-__heap_end__ = ORIGIN(RAM) + LENGTH(RAM);
-
 __checksum__ = 0 - (__stack_end__ + (reset_handler + 1) + (nmi_handler + 1) + (hard_fault_handler + 1));
 
 ENTRY(_start)
@@ -35,21 +23,6 @@ SECTIONS {
         *(.rodata .rodata.*)
     } >FLASH
 
-    .bss __stack_end__ : ALIGN(4) {
-        __bss_start__ = .;
-        *(.bss .bss.*)
-        . = ALIGN(4);
-        __bss_end__ = .;
-    } >RAM
-
-    .data __bss_end__ : ALIGN(4) {
-        __data_start__ = .;
-        __data_source_start__ = LOADADDR(.data);
-        *(.data .data.*)
-        . = ALIGN(4);
-        __data_end__ = .;
-    } >RAM AT>FLASH
-
     /* I have no idea what this is :) */
    	.ARM.exidx : ALIGN(4)
    	{
@@ -58,4 +31,34 @@ SECTIONS {
        . = ALIGN(4);
    	    __exidx_end = .;
    	} >FLASH
+
+    .data : ALIGN(4) {
+        __data_start__ = .;
+        __data_source_start__ = LOADADDR(.data);
+        *(.data .data.*)
+        . = ALIGN(4);
+        __data_end__ = .;
+        __data_source_end__ = LOADADDR(.data);
+    } >RAM AT>FLASH
+
+    .bss : ALIGN(4) {
+        __bss_start__ = .;
+        *(.bss .bss.*)
+        . = ALIGN(4);
+        __bss_end__ = .;
+    } >RAM
+
+    .stack : ALIGN(4) {
+        __stack_start__ = .;
+        . += 1K;
+        . = ALIGN(4);
+        __stack_end__ = .;
+    } >RAM
+
+    .heap : ALIGN(4) {
+        __heap_start__ = .;
+        . += LENGTH(RAM) - (. - ORIGIN(RAM));
+        . = ALIGN(4);
+        __heap_end__ = .;
+    } >RAM
 }
