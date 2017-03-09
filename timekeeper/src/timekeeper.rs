@@ -7,9 +7,10 @@
 #![feature(const_fn)]
 #![cfg_attr(test, allow(dead_code))]
 
-#[cfg_attr(not(test), link_args = "-mthumb -mcpu=cortex-m0 -Tlinker.ld -lc -lgcc")]
+#[cfg_attr(not(test), link_args = "-nostartfiles -nodefaultlibs  -nostdlib -mthumb -mcpu=cortex-m0 -Tlinker.ld -lgcc")]
 extern {}
 
+#[cfg(not(test))]
 extern crate my_allocator;
 extern crate collections;
 
@@ -19,7 +20,7 @@ mod rawhw;
 mod devices;
 mod app;
 
-use devices::cpu::Cpu;
+use devices::cpu;
 use devices::dcf77::Dcf77;
 use devices::clock::Clock;
 use app::datetime::Datetime;
@@ -27,19 +28,20 @@ use core::ptr;
 use core::mem::transmute;
 
 #[start]
-pub fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let _cpu = unsafe { Cpu::new() };
+fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut dcf77 = unsafe { Dcf77::new() };
     let clock = unsafe { Clock::new() };
 
-    panic!("The main function has quit!")
+    0
 }
 
+#[cfg(not(test))]
 extern {
     fn __stack_end__();
     fn __checksum__();
 }
 
+#[cfg(not(test))]
 #[link_section = ".isr_vectors"]
 #[no_mangle]
 pub static ISR_VECTORS: [Option<unsafe extern fn()>; 47] = [
@@ -93,10 +95,10 @@ pub static ISR_VECTORS: [Option<unsafe extern fn()>; 47] = [
     Some(default_handler),  // RTC
 ];
 
+#[cfg(not(test))]
 #[no_mangle]
 pub extern fn reset_handler() {
     extern {
-        fn _start();
         static mut __bss_start__: u32;
         static mut __bss_end__: u32;
         static mut __data_start__: u32;
@@ -110,6 +112,9 @@ pub extern fn reset_handler() {
         ptr::write_volatile(0x40004008 as *mut u32, 0xAA);
         ptr::write_volatile(0x40004008 as *mut u32, 0x55);
 
+        // Init CPU
+        cpu::init();
+
         // Zero .bss
         let bss_size = (&__bss_end__ as *const u32 as usize) - (&__bss_start__ as *const u32 as usize);
         ptr::write_bytes(&mut __bss_start__, 0, bss_size / 4);
@@ -118,25 +123,31 @@ pub extern fn reset_handler() {
         let data_size = (&__data_end__ as *const u32 as usize) - (&__data_start__ as *const u32 as usize);
         ptr::copy_nonoverlapping(&__data_source_start__, &mut __data_start__, data_size / 4);
 
-        // Initialize the C runtime
-        _start();
+        // Initialize the heap
+        my_allocator::init();
     }
+
+    main(0, ptr::null());
 
     panic!("Reset handler has quit");
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub extern fn nmi_handler() {
     default_handler();
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub extern fn hard_fault_handler() {
     default_handler();
 }
 
+#[cfg(not(test))]
 extern fn default_handler() {
-    panic!("Default interrupt handler");
+    breakpoint!();
+    loop {}
 }
 
 #[cfg(not(test))]
@@ -150,34 +161,51 @@ pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
     loop {}
 }
 
+#[cfg(not(test))]
 #[no_mangle]
-pub extern fn _exit() -> ! {
+pub unsafe extern fn abort() -> ! {
     loop {}
 }
 
+#[cfg(not(test))]
 #[no_mangle]
-pub extern fn abort() -> ! {
-    loop {}
+pub unsafe extern fn __aeabi_memclr4(ptr: *mut u32, bytes: usize) -> *mut u32 {
+    let mut at = ptr;
+    for _ in 0..(bytes / 4) {
+        *at = 0;
+        at = at.offset(1);
+    }
+    at
 }
 
+#[cfg(not(test))]
 #[no_mangle]
-pub extern fn _sbrk(incr: i32) -> *mut u8 {
-    extern {
-        static mut __heap_end__: u8;
-        static mut __heap_start__: u8;
+pub unsafe extern fn __aeabi_memcpy4(dest: *mut u32, src: *const u32, bytes: usize) -> *mut u32 {
+    let mut src_at = src;
+    let mut dest_at = dest;
+    for _ in 0..(bytes / 4) {
+        *dest_at = *src_at;
+        dest_at = dest_at.offset(1);
+        src_at = src_at.offset(1);
     }
+    dest_at
+}
 
-    static mut HEAP_AT: *mut u8 = ptr::null_mut();
-    unsafe {
-        if HEAP_AT == ptr::null_mut() {
-            HEAP_AT = &mut __heap_start__;
-        }
-        let prev_heap_at = HEAP_AT;
-        HEAP_AT = HEAP_AT.offset(incr as isize);
-        if HEAP_AT < &mut __heap_end__ {
-            prev_heap_at
-        } else {
-            panic!("Out of heap!");
-        }
+#[cfg(not(test))]
+#[no_mangle]
+pub unsafe extern fn __aeabi_memcpy(dest: *mut u8, src: *const u8, bytes: usize) -> *mut u8 {
+    let mut src_at = src;
+    let mut dest_at = dest;
+    for _ in 0..bytes {
+        *dest_at = *src_at;
+        dest_at = dest_at.offset(1);
+        src_at = src_at.offset(1);
     }
+    dest_at
+}
+
+#[cfg(not(test))]
+#[no_mangle]
+pub unsafe extern fn memcpy(dest: *mut u8, src: *const u8, bytes: usize) -> *mut u8 {
+    __aeabi_memcpy(dest, src, bytes)
 }
