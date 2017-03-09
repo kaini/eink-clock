@@ -48,7 +48,6 @@ fn bcd_digit(data: &[bool]) -> i32  {
     result
 }
 
-#[inline(always)]
 fn floor_div(a: i32, b: i32) -> i32 {
     if a < 0 && a % b != 0 {
         a / b - 1
@@ -57,7 +56,6 @@ fn floor_div(a: i32, b: i32) -> i32 {
     }
 }
 
-#[inline(always)]
 fn modulo(a: i32, b: i32) -> i32 {
     // See http://stackoverflow.com/a/41422009
     (a % b + b) % b

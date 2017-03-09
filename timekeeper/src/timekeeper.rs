@@ -32,6 +32,10 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut dcf77 = unsafe { Dcf77::new() };
     let clock = unsafe { Clock::new() };
 
+    let payload = &dcf77.receive();
+    let time = Datetime::from_dcf77(payload);
+    debug!(time);
+
     0
 }
 
