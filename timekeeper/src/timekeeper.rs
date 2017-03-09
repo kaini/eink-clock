@@ -7,7 +7,7 @@
 #![feature(const_fn)]
 #![cfg_attr(test, allow(dead_code))]
 
-#[link_args = "-mthumb -mcpu=cortex-m0 -Tlinker.ld -lc -lgcc"]
+#[cfg_attr(not(test), link_args = "-mthumb -mcpu=cortex-m0 -Tlinker.ld -lc -lgcc")]
 extern {}
 
 extern crate my_allocator;
@@ -25,9 +25,6 @@ use devices::clock::Clock;
 use app::datetime::Datetime;
 use core::ptr;
 use core::mem::transmute;
-
-// Export interrupt handlers (yes this is ugly but whatever)
-pub use devices::dcf77::TIMER16_0_IRQHandler;
 
 #[start]
 pub fn main(_argc: isize, _argv: *const *const u8) -> isize {
@@ -76,7 +73,7 @@ pub static ISR_VECTORS: [Option<unsafe extern fn()>; 47] = [
     Some(default_handler),  // Wakeup 11
     Some(default_handler),  // Wakeup 12
     Some(default_handler),  // I2C
-    Some(default_handler),  // 16 bit timer 0
+    Some(devices::dcf77::timer16_0_interrupt),  // 16 bit timer 0
     Some(default_handler),  // 16 bit timer 1
     Some(default_handler),  // 32 bit timer 0
     Some(default_handler),  // 32 bit timer 1
@@ -128,6 +125,7 @@ pub extern fn reset_handler() {
         // Initialize the C runtime
         _start();
     }
+
     panic!("Reset handler has quit");
 }
 
@@ -141,8 +139,7 @@ pub extern fn hard_fault_handler() {
     default_handler();
 }
 
-#[no_mangle]
-pub extern fn default_handler() {
+extern fn default_handler() {
     panic!("Default interrupt handler");
 }
 

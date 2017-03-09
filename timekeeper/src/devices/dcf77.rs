@@ -123,9 +123,7 @@ impl Dcf77 {
     }
 }
 
-#[allow(non_snake_case)]
-#[no_mangle]
-pub unsafe extern fn TIMER16_0_IRQHandler() {
+pub unsafe extern fn timer16_0_interrupt() {
     if counter::ir::cr0int::get() {
         counter::ir::cr0int::set_fullreg_zero_this_one();
         write_volatile(&mut INTERRUPT_HAPPENED, true);
