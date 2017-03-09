@@ -30,7 +30,7 @@ macro_rules! debug {
         unsafe { ::debug::write0(s.as_ptr()); }
     });
     ($msg:expr) => ({
-        debug!("{:?}", $expr);
+        debug!("{:?}", $msg);
     });
 }
 

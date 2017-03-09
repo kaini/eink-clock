@@ -50,7 +50,7 @@ SECTIONS {
 
     .stack : ALIGN(4) {
         __stack_start__ = .;
-        . += 1K;
+        . += 2K;
         . = ALIGN(4);
         __stack_end__ = .;
     } >RAM
