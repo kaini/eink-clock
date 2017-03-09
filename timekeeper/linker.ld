@@ -6,7 +6,7 @@ MEMORY {
 __stack = __stack_end__;  /* For Newlib's init code */
 __checksum__ = 0 - (__stack_end__ + (reset_handler + 1) + (nmi_handler + 1) + (hard_fault_handler + 1));
 
-ENTRY(_start)
+ENTRY(reset_handler)
 
 SECTIONS {
     .isr_vectors : ALIGN(4) {
@@ -55,10 +55,10 @@ SECTIONS {
         __stack_end__ = .;
     } >RAM
 
-    .heap : ALIGN(4) {
+    .heap : ALIGN(64) {
         __heap_start__ = .;
         . += LENGTH(RAM) - (. - ORIGIN(RAM));
-        . = ALIGN(4);
+        . = ALIGN(64);
         __heap_end__ = .;
     } >RAM
 }
