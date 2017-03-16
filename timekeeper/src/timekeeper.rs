@@ -28,8 +28,9 @@ use devices::clock::Clock;
 use devices::eink;
 use devices::flash;
 use app::datetime::Datetime;
+use app::graphics::{Graphic, Image, Color};
 use core::ptr;
-use core::mem::transmute;
+use alloc::boxed::Box;
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
@@ -37,19 +38,24 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let _dcf77 = unsafe { Dcf77::new() };
     let _clock = unsafe { Clock::new() };
 
-    eink.enable();
-    eink.render(false, |x, buffer| {
-        for b in buffer.iter_mut() {
-            *b = 0;
-        }
+    let mut graphic = Graphic::new();
+    graphic.add_element(Box::new(Image::new(
+        flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
+        0, 0, flash::CLOCK_W, flash::CLOCK_H)));
 
-        for y in 0..flash::CLOCK_H {
-            let image_bit = (y * flash::CLOCK_W + (flash::CLOCK_W - x - 1)) as usize;
-            buffer[y as usize / 8] |= if flash::CLOCK[image_bit / 8] & (0b10000000 >> (image_bit % 8)) == 0 {
-                1
-            } else {
-                0
-            } << (y % 8);
+    eink.enable();
+    eink.render(false, |scanline, buffer| {
+        let x = eink::SCANLINES - scanline - 1;
+        for y in 0..(eink::SCANLINE_WIDTH / 8) {
+            buffer[y as usize] =
+                    ((if graphic.render_pixel(x, y * 8 + 0) == Color::BLACK { 1 } else { 0 }) << 0) |
+                    ((if graphic.render_pixel(x, y * 8 + 1) == Color::BLACK { 1 } else { 0 }) << 1) |
+                    ((if graphic.render_pixel(x, y * 8 + 2) == Color::BLACK { 1 } else { 0 }) << 2) |
+                    ((if graphic.render_pixel(x, y * 8 + 3) == Color::BLACK { 1 } else { 0 }) << 3) |
+                    ((if graphic.render_pixel(x, y * 8 + 4) == Color::BLACK { 1 } else { 0 }) << 4) |
+                    ((if graphic.render_pixel(x, y * 8 + 5) == Color::BLACK { 1 } else { 0 }) << 5) |
+                    ((if graphic.render_pixel(x, y * 8 + 6) == Color::BLACK { 1 } else { 0 }) << 6) |
+                    ((if graphic.render_pixel(x, y * 8 + 7) == Color::BLACK { 1 } else { 0 }) << 7);
         }
     });
     eink.disable();
