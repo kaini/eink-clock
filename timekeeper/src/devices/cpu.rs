@@ -20,6 +20,7 @@ pub unsafe fn init() {
     syscon::mainclkuen::ena::set(true);
 }
 
+#[inline(always)]
 pub fn usleep(us: u16) {
     unsafe {
         ct16b1::pr::pcval::set(35);  // Divide by 36 -> one count per us

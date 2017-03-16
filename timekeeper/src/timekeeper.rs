@@ -1,18 +1,20 @@
 #![no_std]
 #![feature(lang_items)]
 #![feature(collections)]
+#![feature(alloc)]
 #![feature(start)]
 #![feature(asm)]
 #![feature(link_args)]
 #![feature(const_fn)]
 #![cfg_attr(test, allow(dead_code))]
 
-#[cfg_attr(not(test), link_args = "-nostartfiles -nodefaultlibs  -nostdlib -mthumb -mcpu=cortex-m0 -Tlinker.ld -lgcc")]
+#[cfg_attr(not(test), link_args = "-mthumb -mcpu=cortex-m0 -Tlinker.ld -lc -lgcc")]
 extern {}
 
 #[cfg(not(test))]
 extern crate my_allocator;
 extern crate collections;
+extern crate alloc;
 
 #[macro_use]
 mod debug;
@@ -23,22 +25,43 @@ mod app;
 use devices::cpu;
 use devices::dcf77::Dcf77;
 use devices::clock::Clock;
-use devices::eink::Eink;
+use devices::eink;
 use app::datetime::Datetime;
 use core::ptr;
 use core::mem::transmute;
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let mut eink = unsafe { Eink::new() };
+    let mut eink = unsafe { eink::Eink::new() };
     let _dcf77 = unsafe { Dcf77::new() };
     let _clock = unsafe { Clock::new() };
 
     eink.enable();
-    eink.do_something();
+    eink.render(true, |scanline, buffer| {
+        let x = scanline;
+        for y in 0..eink::SCANLINE_WIDTH {
+            let mut value = false;
+            let mut xx = x;
+            let mut yy = y;
+            while xx > 0 || yy > 0 {
+                if xx % 3 == 1 && yy % 3 == 1 {
+                    value = true;
+                    break;
+                }
+                xx /= 3;
+                yy /= 3;
+            }
+
+            if value {
+                buffer[y as usize / 8] |= 1 << (y % 8);
+            } else {
+                buffer[y as usize / 8] &= !(1 << (y % 8));
+            }
+        }
+    });
     eink.disable();
 
-    0
+    panic!("Main has quit");
 }
 
 #[cfg(not(test))]
@@ -110,6 +133,7 @@ pub extern fn reset_handler() {
         static mut __data_start__: u32;
         static mut __data_end__: u32;
         static __data_source_start__: u32;
+        fn _start();
     }
 
     unsafe {
@@ -129,11 +153,9 @@ pub extern fn reset_handler() {
         let data_size = (&__data_end__ as *const u32 as usize) - (&__data_start__ as *const u32 as usize);
         ptr::copy_nonoverlapping(&__data_source_start__, &mut __data_start__, data_size / 4);
 
-        // Initialize the heap
-        my_allocator::init();
+        // Initialize the runtime
+        _start();
     }
-
-    main(0, ptr::null());
 
     panic!("Reset handler has quit");
 }
@@ -173,43 +195,27 @@ pub unsafe extern fn abort() -> ! {
 
 #[cfg(not(test))]
 #[no_mangle]
-pub unsafe extern fn __aeabi_memclr4(ptr: *mut u32, bytes: usize) -> *mut u32 {
-    let mut at = ptr;
-    for _ in 0..(bytes / 4) {
-        *at = 0;
-        at = at.offset(1);
-    }
-    at
+pub unsafe extern fn _exit() -> ! {
+    loop {}
 }
 
 #[cfg(not(test))]
 #[no_mangle]
-pub unsafe extern fn __aeabi_memcpy4(dest: *mut u32, src: *const u32, bytes: usize) -> *mut u32 {
-    let mut src_at = src;
-    let mut dest_at = dest;
-    for _ in 0..(bytes / 4) {
-        *dest_at = *src_at;
-        dest_at = dest_at.offset(1);
-        src_at = src_at.offset(1);
+pub unsafe extern fn _sbrk(incr: isize) -> *mut u8 {
+    extern {
+        static mut __heap_start__: u8;
+        static mut __heap_end__: u8;
     }
-    dest_at
-}
 
-#[cfg(not(test))]
-#[no_mangle]
-pub unsafe extern fn __aeabi_memcpy(dest: *mut u8, src: *const u8, bytes: usize) -> *mut u8 {
-    let mut src_at = src;
-    let mut dest_at = dest;
-    for _ in 0..bytes {
-        *dest_at = *src_at;
-        dest_at = dest_at.offset(1);
-        src_at = src_at.offset(1);
+    static mut HEAP_END: *mut u8 = ptr::null_mut();
+    if HEAP_END == ptr::null_mut() {
+        HEAP_END = &mut __heap_start__;
     }
-    dest_at
-}
 
-#[cfg(not(test))]
-#[no_mangle]
-pub unsafe extern fn memcpy(dest: *mut u8, src: *const u8, bytes: usize) -> *mut u8 {
-    __aeabi_memcpy(dest, src, bytes)
+    let prev_heap_end = HEAP_END;
+    if (HEAP_END.offset(incr) as usize) > (&__heap_end__ as *const u8 as usize) {
+        panic!("Heap overflow!");
+    }
+    HEAP_END = HEAP_END.offset(incr);
+    prev_heap_end
 }
