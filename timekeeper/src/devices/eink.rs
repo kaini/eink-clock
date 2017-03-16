@@ -68,6 +68,11 @@ const NOOP: u8  = 0b00;
 const WHITE: u8 = 0b10;
 const BLACK: u8 = 0b01;
 
+pub const SCANLINES: i32 = 600;
+pub const SCANLINE_WIDTH: i32 = 800;
+pub const BUFFER_BYTES: usize = (SCANLINE_WIDTH / 8) as usize;
+static mut BUFFER: [u8; BUFFER_BYTES] = [0; BUFFER_BYTES];
+
 macro_rules! setup_output {
     ($ioconfig:ident, $gpio:ident, $bit:expr) => ({
         $ioconfig::mode::set(Pullup::Disabled);
@@ -77,7 +82,7 @@ macro_rules! setup_output {
 }
 
 pub struct Eink {
-    _phantom: ()
+    _phantom: (),
 }
 
 impl Eink {
@@ -103,7 +108,9 @@ impl Eink {
         setup_output!(dckv_ioconfig, dckv_gpio, DCKV_BIT);
         setup_output!(dsph_ioconfig, dsph_gpio, DSPH_BIT);
 
-        Eink { _phantom: () }
+        Eink {
+            _phantom: (),
+        }
     }
 
     pub fn enable(&mut self) {
@@ -132,7 +139,6 @@ impl Eink {
         dgmode_gpio::set::set(1 << DGMODE_BIT);
         dckv_gpio::set::set(1 << DCKV_BIT);
         dsph_gpio::set::set(1 << DSPH_BIT);
-        doe_gpio::set::set(1 << DOE_BIT);
         usleep(1000);
     }
 
@@ -145,6 +151,13 @@ impl Eink {
         dspv_gpio::clr::set(1 << DSPV_BIT);
         dckv_gpio::clr::set(1 << DCKV_BIT);
         dsph_gpio::clr::set(1 << DSPH_BIT);
+    }
+
+    unsafe fn advance_line(&mut self) {
+        dckv_gpio::clr::set(1 << DCKV_BIT);
+        usleep(1);
+        dckv_gpio::set::set(1 << DCKV_BIT);
+        usleep(1);
     }
 
     unsafe fn begin_frame(&mut self) {
@@ -160,25 +173,24 @@ impl Eink {
         usleep(25);
 
         // For some reason I have to advance 3 times to fill the whole screen
-        for _ in 0..3 {
-            dckv_gpio::clr::set(1 << DCKV_BIT);
-            usleep(1);
-            dckv_gpio::set::set(1 << DCKV_BIT);
-            usleep(1);
-        }
+        self.advance_line();
+        self.advance_line();
+        self.advance_line();
     }
 
     unsafe fn end_frame(&mut self) {
     }
 
     unsafe fn begin_line(&mut self) {
+        doe_gpio::set::set(1 << DOE_BIT);
         dsph_gpio::clr::set(1 << DSPH_BIT);
-        usleep(1);
-        dsph_gpio::set::set(1 << DSPH_BIT);
         usleep(1);
     }
 
     unsafe fn end_line(&mut self) {
+        dsph_gpio::set::set(1 << DSPH_BIT);
+        usleep(1);
+
         dcl_gpio::set::set(1 << DCL_BIT);
         dckv_gpio::clr::set(1 << DCKV_BIT);
         usleep(1);
@@ -194,6 +206,8 @@ impl Eink {
         usleep(1);
         dle_gpio::clr::set(1 << DLE_BIT);
         usleep(1);
+        
+        doe_gpio::clr::set(1 << DOE_BIT);
     }
 
     // Use the constants NOOP, WHITE, BLACK.
@@ -219,32 +233,35 @@ impl Eink {
         self.end_frame();
     }
 
-    pub fn do_something(&mut self) {
+    pub fn render<Draw>(&mut self, clear: bool, mut draw: Draw)
+            where Draw: FnMut(i32, &mut [u8; BUFFER_BYTES]) {
         unsafe {
             self.draw_mode_on();
 
-            self.clear();
+            if clear {
+                self.clear();
+            }
 
             self.begin_frame();
-            for row in 0..600 {
+            for scanline in 0..SCANLINES {
+                draw(scanline, &mut BUFFER);
+                let mut buffer_byte = 0;
+
                 self.begin_line();
-                for col in 0..200 {
-                    fn test(mut x: i32, mut y: i32) -> u8 {
-                        while x > 0 || y > 0 {
-                            if x % 3 == 1 && y % 3 == 1 {
-                                return BLACK;
-                            }
-                            x /= 3;
-                            y /= 3;
-                        }
-                        WHITE
-                    }
+                for _ in 0..(SCANLINE_WIDTH / 8) {
                     self.set_four_pixels(&[
-                        test(row, col * 4 + 0),
-                        test(row, col * 4 + 1),
-                        test(row, col * 4 + 2),
-                        test(row, col * 4 + 3),
-                    ])
+                        if (BUFFER[buffer_byte] & (1 << 0)) != 0 { BLACK } else { WHITE },
+                        if (BUFFER[buffer_byte] & (1 << 1)) != 0 { BLACK } else { WHITE },
+                        if (BUFFER[buffer_byte] & (1 << 2)) != 0 { BLACK } else { WHITE },
+                        if (BUFFER[buffer_byte] & (1 << 3)) != 0 { BLACK } else { WHITE },
+                    ]);
+                    self.set_four_pixels(&[
+                        if (BUFFER[buffer_byte] & (1 << 4)) != 0 { BLACK } else { WHITE },
+                        if (BUFFER[buffer_byte] & (1 << 5)) != 0 { BLACK } else { WHITE },
+                        if (BUFFER[buffer_byte] & (1 << 6)) != 0 { BLACK } else { WHITE },
+                        if (BUFFER[buffer_byte] & (1 << 7)) != 0 { BLACK } else { WHITE },
+                    ]);
+                    buffer_byte += 1;
                 }
                 self.end_line();
             }
