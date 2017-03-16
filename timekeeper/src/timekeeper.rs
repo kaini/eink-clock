@@ -26,6 +26,7 @@ use devices::cpu;
 use devices::dcf77::Dcf77;
 use devices::clock::Clock;
 use devices::eink;
+use devices::flash;
 use app::datetime::Datetime;
 use core::ptr;
 use core::mem::transmute;
@@ -37,26 +38,18 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let _clock = unsafe { Clock::new() };
 
     eink.enable();
-    eink.render(true, |scanline, buffer| {
-        let x = scanline;
-        for y in 0..eink::SCANLINE_WIDTH {
-            let mut value = false;
-            let mut xx = x;
-            let mut yy = y;
-            while xx > 0 || yy > 0 {
-                if xx % 3 == 1 && yy % 3 == 1 {
-                    value = true;
-                    break;
-                }
-                xx /= 3;
-                yy /= 3;
-            }
+    eink.render(false, |x, buffer| {
+        for b in buffer.iter_mut() {
+            *b = 0;
+        }
 
-            if value {
-                buffer[y as usize / 8] |= 1 << (y % 8);
+        for y in 0..flash::CLOCK_H {
+            let image_bit = (y * flash::CLOCK_W + (flash::CLOCK_W - x - 1)) as usize;
+            buffer[y as usize / 8] |= if flash::CLOCK[image_bit / 8] & (0b10000000 >> (image_bit % 8)) == 0 {
+                1
             } else {
-                buffer[y as usize / 8] &= !(1 << (y % 8));
-            }
+                0
+            } << (y % 8);
         }
     });
     eink.disable();
