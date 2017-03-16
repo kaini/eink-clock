@@ -23,18 +23,20 @@ mod app;
 use devices::cpu;
 use devices::dcf77::Dcf77;
 use devices::clock::Clock;
+use devices::eink::Eink;
 use app::datetime::Datetime;
 use core::ptr;
 use core::mem::transmute;
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let mut dcf77 = unsafe { Dcf77::new() };
-    let clock = unsafe { Clock::new() };
+    let mut eink = unsafe { Eink::new() };
+    let _dcf77 = unsafe { Dcf77::new() };
+    let _clock = unsafe { Clock::new() };
 
-    let payload = &dcf77.receive();
-    let time = Datetime::from_dcf77(payload);
-    debug!(time);
+    eink.enable();
+    eink.do_something();
+    eink.disable();
 
     0
 }
@@ -150,7 +152,6 @@ pub extern fn hard_fault_handler() {
 
 #[cfg(not(test))]
 extern fn default_handler() {
-    breakpoint!();
     loop {}
 }
 
@@ -161,7 +162,6 @@ pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
                                file: &'static str,
                                line: u32) -> ! {
     debug!("PANIC: {} ({}:{})", msg, file, line);
-    breakpoint!();
     loop {}
 }
 
