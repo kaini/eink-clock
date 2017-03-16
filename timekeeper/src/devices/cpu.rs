@@ -1,4 +1,5 @@
 use rawhw::syscon;
+use rawhw::counter::ct16b1;
 
 pub unsafe fn init() {
     // See Section 4.10.4.1 on how to calculate these values.
@@ -17,4 +18,15 @@ pub unsafe fn init() {
     syscon::mainclksel::sel::set(syscon::MainClock::PllOutput);
     syscon::mainclkuen::ena::set(false);
     syscon::mainclkuen::ena::set(true);
+}
+
+pub fn usleep(us: u16) {
+    unsafe {
+        ct16b1::pr::pcval::set(35);  // Divide by 36 -> one count per us
+        ct16b1::tcr::cen::set(true);
+        ct16b1::tcr::crst::set(true);
+        ct16b1::tcr::crst::set(false);
+        while ct16b1::tc::tc::get() < us { }
+        ct16b1::tcr::cen::set(false);
+    }
 }
