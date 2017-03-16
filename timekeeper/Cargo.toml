@@ -2,6 +2,7 @@
 name = "timekeeper"
 version = "0.1.0"
 authors = ["Michael Kainer <michael@kainer.io>"]
+build = "build.rs"
 
 [profile.dev]
 opt-level = 3
