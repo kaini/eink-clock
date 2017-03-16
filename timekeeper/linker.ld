@@ -32,6 +32,13 @@ SECTIONS {
    	    __exidx_end = .;
    	} >FLASH
 
+    .stack : ALIGN(4) {
+        __stack_start__ = .;
+        . += 2K;
+        . = ALIGN(4);
+        __stack_end__ = .;
+    } >RAM
+
     .data : ALIGN(4) {
         __data_start__ = .;
         __data_source_start__ = LOADADDR(.data);
@@ -46,13 +53,6 @@ SECTIONS {
         *(.bss .bss.*)
         . = ALIGN(4);
         __bss_end__ = .;
-    } >RAM
-
-    .stack : ALIGN(4) {
-        __stack_start__ = .;
-        . += 2K;
-        . = ALIGN(4);
-        __stack_end__ = .;
     } >RAM
 
     .heap : ALIGN(64) {
