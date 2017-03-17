@@ -13,6 +13,7 @@ extern {}
 
 #[cfg(not(test))]
 extern crate my_allocator;
+#[macro_use]
 extern crate collections;
 extern crate alloc;
 
@@ -28,24 +29,28 @@ use devices::clock::Clock;
 use devices::eink;
 use devices::flash;
 use app::datetime::Datetime;
-use app::graphics::{Graphic, Image, Color, Text, HorizontalAlign};
+use app::graphics::{Graphic, HorizontalAlign, Color};
 use core::ptr;
 use alloc::boxed::Box;
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut eink = unsafe { eink::Eink::new() };
-    let _dcf77 = unsafe { Dcf77::new() };
-    let _clock = unsafe { Clock::new() };
+    let mut dcf77 = unsafe { Dcf77::new() };
+    let mut clock = unsafe { Clock::new() };
 
-    let mut graphic = Graphic::new();
-    graphic.add_element(Box::new(Image::new(
+    let create_image_start_time = clock.current_time();
+    let mut graphic = Graphic::new(600, 800);
+    graphic.add_image(
         flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
-        0, 0, flash::CLOCK_W, flash::CLOCK_H)));
-    graphic.add_element(Box::new(Text::new("Hallo Welt", &flash::SMALL_FONT, 10, 600, HorizontalAlign::LEFT)));
-    graphic.add_element(Box::new(Text::new("Hallo Welt", &flash::SMALL_FONT, 590, 600, HorizontalAlign::RIGHT)));
-    graphic.add_element(Box::new(Text::new("FR 17.3.", &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER)));
+        0, 0, flash::CLOCK_W, flash::CLOCK_H);
+    graphic.add_text("Hallo Welt", &flash::SMALL_FONT, 10, 600, HorizontalAlign::LEFT);
+    graphic.add_text("Hallo Welt", &flash::SMALL_FONT, 590, 600, HorizontalAlign::RIGHT);
+    graphic.add_text("FR 17.3.", &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
+    let create_image_end_time = clock.current_time();
+    debug!("Create Image Time: {} ms", create_image_end_time - create_image_start_time);
 
+    let eink_start_time = clock.current_time();
     eink.enable();
     eink.render(false, |scanline, buffer| {
         let x = eink::SCANLINES - scanline - 1;
@@ -62,6 +67,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         }
     });
     eink.disable();
+    let eink_end_time = clock.current_time();
+    debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);
 
     panic!("Main has quit");
 }
