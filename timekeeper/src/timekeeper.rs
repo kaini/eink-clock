@@ -28,7 +28,7 @@ use devices::clock::Clock;
 use devices::eink;
 use devices::flash;
 use app::datetime::Datetime;
-use app::graphics::{Graphic, Image, Color};
+use app::graphics::{Graphic, Image, Color, Text, HorizontalAlign};
 use core::ptr;
 use alloc::boxed::Box;
 
@@ -42,6 +42,9 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     graphic.add_element(Box::new(Image::new(
         flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
         0, 0, flash::CLOCK_W, flash::CLOCK_H)));
+    graphic.add_element(Box::new(Text::new("Hallo Welt", &flash::SMALL_FONT, 10, 600, HorizontalAlign::LEFT)));
+    graphic.add_element(Box::new(Text::new("Hallo Welt", &flash::SMALL_FONT, 590, 600, HorizontalAlign::RIGHT)));
+    graphic.add_element(Box::new(Text::new("FR 17.3.", &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER)));
 
     eink.enable();
     eink.render(false, |scanline, buffer| {
