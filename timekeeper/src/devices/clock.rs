@@ -1,4 +1,4 @@
-use rawhw::rtc;
+use rawhw::{rtc, syscon};
 
 pub struct Clock {
     _phantom: ()
@@ -6,6 +6,7 @@ pub struct Clock {
 
 impl Clock {
     pub unsafe fn new() -> Clock {
+        syscon::syscfg::rtcclk::set(syscon::RtcClock::ONE_KHZ);
         rtc::cr::rtcstart::set(true);
 
         let clock = Clock { _phantom: () };

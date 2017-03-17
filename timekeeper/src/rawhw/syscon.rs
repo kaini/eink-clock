@@ -32,6 +32,16 @@ pub enum MainClock {
     PllOutput = 3,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
+#[allow(dead_code)]
+pub enum RtcClock {
+    ONE_HZ = 0b0000,
+    DELAYED_ONE_HZ = 0b0001,
+    ONE_KHZ = 0b1010,
+    RTC_PCLK = 0b0100,
+}
+
 register_block! {
     presetctrl 0x40048004 => {
         0, ssp_rst_n, RstN;
@@ -82,5 +92,9 @@ register_block! {
         6, wdtosc_pd, bool;
         7, syspll_pd, bool;
         15, comp_pd, bool;
+    }
+    syscfg 0x40038014 => {
+        10, wakeuphys, bool;
+        11,14, rtcclk, RtcClock;
     }
 }
