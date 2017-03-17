@@ -25,11 +25,14 @@ fn svg_to_png(src: &str, dst: &str) {
 
 fn image_to_gray(src: &str, dst: &str, invert: bool) {
     println!("cargo:rerun-if-changed={}", src);
-    Command::new("magick").arg(src)
-                          .arg("-depth").arg("1")
-                          .arg(if invert { "-negate" } else { "" })
-                          .arg(dst)
-                          .status().unwrap();
+    let mut cmd = Command::new("magick");
+    cmd.arg(src)
+       .arg("-depth").arg("1");
+    if invert {
+        cmd.arg("-negate");
+    }
+    cmd.arg(dst)
+       .status().unwrap();
 }
 
 fn font_to_rust(src: &str, dst: &str) {
