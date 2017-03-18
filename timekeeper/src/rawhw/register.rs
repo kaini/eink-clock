@@ -38,7 +38,6 @@ macro_rules! register_accessor {
             use super::*;
 
             #[allow(dead_code)]
-            #[inline(always)]
             pub unsafe fn set(value: $field_type) {
                 let mut reg_value = ::core::ptr::read_volatile($address as *const u32) & $andmask;
                 reg_value &= !(((1 << ($bit_to - $bit_from + 1)) - 1) << $bit_from);
@@ -47,7 +46,6 @@ macro_rules! register_accessor {
             }
 
             #[allow(dead_code)]
-            #[inline(always)]
             pub unsafe fn get() -> $field_type {
                 let mut value = ::core::ptr::read_volatile($address as *const u32) & $andmask;
                 value >>= $bit_from;
@@ -56,7 +54,6 @@ macro_rules! register_accessor {
             }
 
             #[allow(dead_code)]
-            #[inline(always)]
             pub unsafe fn set_fullreg_zero_this_one() {
                 ::core::ptr::write_volatile($address as *mut u32, (((1 << ($bit_to - $bit_from + 1)) - 1) << $bit_from) & $andmask)
             }
@@ -69,25 +66,21 @@ macro_rules! register_accessor {
     // Accessors for a full register value (32 bit).
     ($address:expr, $andmask:expr, full) => (
         #[allow(dead_code)]
-        #[inline(always)]
         pub unsafe fn get() -> u32 {
             ::core::ptr::read_volatile($address as *const u32) & $andmask
         }
 
         #[allow(dead_code)]
-        #[inline(always)]
         pub unsafe fn set(value: u32) {
             ::core::ptr::write_volatile($address as *mut u32, value & $andmask)
         }
 
         #[allow(dead_code)]
-        #[inline(always)]
         pub unsafe fn set_bit(index: u32) {
             set(get() | (1 << index));
         }
 
         #[allow(dead_code)]
-        #[inline(always)]
         pub unsafe fn clear_bit(index: u32) {
             set(get() & !(1 << index));
         }

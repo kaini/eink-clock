@@ -23,11 +23,8 @@ mod rawhw;
 mod devices;
 mod app;
 
-use devices::cpu;
-use devices::dcf77::Dcf77;
+use devices::{cpu, eink, flash, dcf77};
 use devices::clock::Clock;
-use devices::eink;
-use devices::flash;
 use app::datetime::Datetime;
 use app::graphics::{Graphic, HorizontalAlign, Color};
 use core::ptr;
@@ -36,10 +33,21 @@ use alloc::boxed::Box;
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut eink = unsafe { eink::Eink::new() };
-    let mut dcf77 = unsafe { Dcf77::new() };
+    unsafe {
+        dcf77::init();
+    }
     let mut clock = unsafe { Clock::new() };
 
-    let create_image_start_time = clock.current_time();
+    dcf77::start_receive();
+    loop {
+        unsafe { asm!("wfi" :::: "volatile"); }
+        if let Some(signal) = dcf77::get_result() {
+            debug!("{:?}", signal);
+            break;
+        }
+    }
+
+    /*let create_image_start_time = clock.current_time();
     let mut graphic = Graphic::new(600, 800);
     graphic.add_image(
         flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
@@ -68,7 +76,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     });
     eink.disable();
     let eink_end_time = clock.current_time();
-    debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);
+    debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);*/
 
     panic!("Main has quit");
 }
