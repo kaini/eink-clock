@@ -33,7 +33,7 @@ enum Edge {
 enum State {
     Idle,
     WaitForModule(u8),
-    WaitForSignal(Edge, u32),
+    WaitForSignal(Edge),
     Receive(Edge, usize),
 }
 
@@ -120,22 +120,22 @@ pub unsafe extern fn timer16_0_interrupt() {
         shared.state = match shared.state {
             State::WaitForModule(0) => {
                 wait_for_falling_edge();
-                State::WaitForSignal(Edge::Falling, 0)
+                State::WaitForSignal(Edge::Falling)
             },
             State::WaitForModule(todo) => {
                 wait_for_raising_edge();
                 State::WaitForModule(todo - 1)
             },
-            State::WaitForSignal(Edge::Falling, time) => {
+            State::WaitForSignal(Edge::Falling) => {
                 reset_counter();
                 wait_for_raising_edge();
-                State::WaitForSignal(Edge::Raising, 0)
+                State::WaitForSignal(Edge::Raising)
             },
-            State::WaitForSignal(Edge::Raising, time) => {
+            State::WaitForSignal(Edge::Raising) => {
                 let low_time = read_counter();
                 if low_time < 1600 {
                     wait_for_falling_edge();
-                    State::WaitForSignal(Edge::Falling, low_time)
+                    State::WaitForSignal(Edge::Falling)
                 } else {
                     wait_for_raising_edge();
                     State::Receive(Edge::Raising, 0)
