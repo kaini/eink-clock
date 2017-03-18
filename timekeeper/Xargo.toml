@@ -1,3 +1,4 @@
 [target.thumbv6m-none-eabi.dependencies]
 core = {}
 collections = {}
+alloc = {}

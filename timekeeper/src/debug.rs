@@ -19,10 +19,6 @@ macro_rules! debug {
         #[allow(unused_unsafe)] unsafe { ::debug::write0(s.as_ptr()); }
     });
     ($msg:expr) => ({
-        debug!("{:?}", $msg);
+        debug!($msg,);
     });
-}
-
-macro_rules! debug_trace {
-    () => (debug!("{}:{}", file!(), line!()))
 }
