@@ -45,6 +45,7 @@ impl IsrFlag {
         }
     }
 
+    #[cfg(not(test))]
     pub unsafe fn wait(&'static mut self) {
         let mut current_flag = false;
         while !current_flag {
@@ -72,7 +73,18 @@ impl IsrFlag {
         }
     }
 
+    #[cfg(test)]
+    pub unsafe fn wait(&'static mut self) {
+        unimplemented!();
+    }
+
+    #[cfg(not(test))]
     pub unsafe fn set(&'static mut self) {
         write_volatile(&mut self.flag, true);
+    }
+
+    #[cfg(test)]
+    pub unsafe fn set(&'static mut self) {
+        unimplemented!();
     }
 }
