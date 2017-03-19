@@ -2,7 +2,7 @@ use collections::vec::Vec;
 use alloc::boxed::Box;
 use devices::flash::Font;
 
-const GRID_SIZE: usize = 128;
+const GRID_SIZE: usize = 256;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Color {

@@ -62,7 +62,7 @@ fn modulo(a: i32, b: i32) -> i32 {
 }
 
 impl Datetime {
-    pub fn from_dcf77(data: &[bool; PAYLOAD_BITS]) -> Result<Datetime, &'static str> {
+    pub fn from_dcf77(data: &[bool]) -> Result<Datetime, &'static str> {
         if !data[19] {
             return Err("Bit 20 is not 1");
         }

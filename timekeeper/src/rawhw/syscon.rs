@@ -36,10 +36,10 @@ pub enum MainClock {
 #[repr(u32)]
 #[allow(dead_code)]
 pub enum RtcClock {
-    ONE_HZ = 0b0000,
-    DELAYED_ONE_HZ = 0b0001,
-    ONE_KHZ = 0b1010,
-    RTC_PCLK = 0b0100,
+    OneHz = 0b0000,
+    DelayedOneHz = 0b0001,
+    OneKHz = 0b1010,
+    RtcPclk = 0b0100,
 }
 
 register_block! {

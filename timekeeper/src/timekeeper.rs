@@ -23,62 +23,110 @@ mod rawhw;
 mod devices;
 mod app;
 
-use devices::{cpu, eink, flash, dcf77};
-use devices::clock::Clock;
+use devices::{cpu, eink, flash, dcf77, clock};
 use app::datetime::Datetime;
 use app::graphics::{Graphic, HorizontalAlign, Color};
 use core::ptr;
-use alloc::boxed::Box;
+use collections::String;
+
+const RESYNC_TIME: u32 = 7 * 24 * 60 * 60 * 1000;  // 7 days
+const WEEKDAYS: [&str; 7] = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut eink = unsafe { eink::Eink::new() };
     unsafe {
         dcf77::init();
+        clock::init();
     }
-    let mut clock = unsafe { Clock::new() };
 
-    dcf77::start_receive();
+    let mut zero_time = adjust_time(&mut eink);
+    let mut clear = true;
+    let mut last_repaint_minute = -1;
+
     loop {
-        unsafe { asm!("wfi" :::: "volatile"); }
-        if let Some(signal) = dcf77::get_result() {
-            debug!("{:?}", signal);
-            break;
+        let now_ms = clock::current_time();
+        let now = { let mut now = zero_time.clone(); now.offset_seconds(now_ms / 1000); now };
+
+        if now.minute() != last_repaint_minute  {
+            last_repaint_minute = now.minute();
+
+            let status_line = format!("LAST SYNC: {}.{}.{} {:02}:{:02}",
+                zero_time.day(), zero_time.month(), zero_time.year(),
+                zero_time.hour(), zero_time.minute());
+
+            let mut graphic = Graphic::new(600, 800);
+            graphic.add_image(
+                flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
+                0, 0, flash::CLOCK_W, flash::CLOCK_H);
+            graphic.add_text(&status_line, &flash::SMALL_FONT, 597, 775, HorizontalAlign::RIGHT);
+            graphic.add_text(
+                &format!("{} {}.{}.", WEEKDAYS[now.weekday() as usize], now.day(), now.month()),
+                &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
+
+            let eink_start_time = clock::current_time();
+            eink.enable();
+            eink.render(clear, |scanline, buffer| {
+                let x = eink::SCANLINES - scanline - 1;
+                for y in 0..(eink::SCANLINE_WIDTH / 8) {
+                    buffer[y as usize] =
+                            ((if graphic.render_pixel(x, y * 8 + 0) == Color::BLACK { 1 } else { 0 }) << 0) |
+                            ((if graphic.render_pixel(x, y * 8 + 1) == Color::BLACK { 1 } else { 0 }) << 1) |
+                            ((if graphic.render_pixel(x, y * 8 + 2) == Color::BLACK { 1 } else { 0 }) << 2) |
+                            ((if graphic.render_pixel(x, y * 8 + 3) == Color::BLACK { 1 } else { 0 }) << 3) |
+                            ((if graphic.render_pixel(x, y * 8 + 4) == Color::BLACK { 1 } else { 0 }) << 4) |
+                            ((if graphic.render_pixel(x, y * 8 + 5) == Color::BLACK { 1 } else { 0 }) << 5) |
+                            ((if graphic.render_pixel(x, y * 8 + 6) == Color::BLACK { 1 } else { 0 }) << 6) |
+                            ((if graphic.render_pixel(x, y * 8 + 7) == Color::BLACK { 1 } else { 0 }) << 7);
+                }
+            });
+            eink.disable();
+            clear = false;
+            let eink_end_time = clock::current_time();
+            debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);
         }
     }
+}
 
-    /*let create_image_start_time = clock.current_time();
-    let mut graphic = Graphic::new(600, 800);
-    graphic.add_image(
-        flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
-        0, 0, flash::CLOCK_W, flash::CLOCK_H);
-    graphic.add_text("Hallo Welt", &flash::SMALL_FONT, 10, 600, HorizontalAlign::LEFT);
-    graphic.add_text("Hallo Welt", &flash::SMALL_FONT, 590, 600, HorizontalAlign::RIGHT);
-    graphic.add_text("FR 17.3.", &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
-    let create_image_end_time = clock.current_time();
-    debug!("Create Image Time: {} ms", create_image_end_time - create_image_start_time);
-
-    let eink_start_time = clock.current_time();
+/// Receives the time and returns the new zero time.
+fn adjust_time(eink: &mut eink::Eink) -> Datetime {
     eink.enable();
-    eink.render(false, |scanline, buffer| {
+    eink.render(true, |scanline, buffer| {
+        for b in buffer.iter_mut() {
+            *b = 0;
+        }
+
         let x = eink::SCANLINES - scanline - 1;
-        for y in 0..(eink::SCANLINE_WIDTH / 8) {
-            buffer[y as usize] =
-                    ((if graphic.render_pixel(x, y * 8 + 0) == Color::BLACK { 1 } else { 0 }) << 0) |
-                    ((if graphic.render_pixel(x, y * 8 + 1) == Color::BLACK { 1 } else { 0 }) << 1) |
-                    ((if graphic.render_pixel(x, y * 8 + 2) == Color::BLACK { 1 } else { 0 }) << 2) |
-                    ((if graphic.render_pixel(x, y * 8 + 3) == Color::BLACK { 1 } else { 0 }) << 3) |
-                    ((if graphic.render_pixel(x, y * 8 + 4) == Color::BLACK { 1 } else { 0 }) << 4) |
-                    ((if graphic.render_pixel(x, y * 8 + 5) == Color::BLACK { 1 } else { 0 }) << 5) |
-                    ((if graphic.render_pixel(x, y * 8 + 6) == Color::BLACK { 1 } else { 0 }) << 6) |
-                    ((if graphic.render_pixel(x, y * 8 + 7) == Color::BLACK { 1 } else { 0 }) << 7);
+        for y in 0..eink::SCANLINE_WIDTH {
+            let mut xx = x;
+            let mut yy = y;
+            let mut result = 0;
+            while xx > 0 || yy > 0 {
+                if xx % 3 == 1 && yy % 3 == 1 {
+                    result = 1;
+                    break;
+                }
+                xx /= 3;
+                yy /= 3;
+            }
+            buffer[y as usize / 8] |= result << (y % 8);
         }
     });
     eink.disable();
-    let eink_end_time = clock.current_time();
-    debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);*/
 
-    panic!("Main has quit");
+    loop {
+        let payload = dcf77::receive();
+        let time = clock::current_time();
+        match Datetime::from_dcf77(&payload) {
+            Ok(new_zero_time) => {
+                clock::offset_time(-time);
+                return new_zero_time;
+            },
+            Err(error) => {
+                debug!("DCF parse error: {}", error);
+            }
+        }
+    }
 }
 
 #[cfg(not(test))]
