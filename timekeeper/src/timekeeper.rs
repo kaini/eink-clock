@@ -59,6 +59,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
             graphic.add_text(
                 &format!("{} {}.{}.", WEEKDAYS[now.weekday() as usize], now.day(), now.month()),
                 &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
+            graphic.add_line(50, 50, 400, 400, 20);
 
             let eink_start_time = clock::current_time();
             eink.enable();
@@ -86,6 +87,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
 /// Receives the time and returns the new zero time.
 fn adjust_time(eink: &mut eink::Eink) -> Datetime {
+    return Datetime::new(2000, 1, 1, 12, 30, 0, 3600).unwrap();
+
     eink.enable();
     eink.render(true, |scanline, buffer| {
         for b in buffer.iter_mut() {
