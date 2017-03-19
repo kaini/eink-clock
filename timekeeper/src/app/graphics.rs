@@ -1,8 +1,22 @@
 use collections::vec::Vec;
 use alloc::boxed::Box;
 use devices::flash::Font;
+use core::cmp::{min, max};
+use core::mem::transmute;
 
 const GRID_SIZE: usize = 256;
+
+/// https://en.wikipedia.org/wiki/Fast_inverse_square_root
+fn rsqrt(number: f32) -> f32 {
+    let x2 = number * 0.5;
+    let mut y = number;
+    let mut i = unsafe { transmute::<f32, i32>(y) };
+    i = 0x5f3759df - (i >> 1);
+    y = unsafe { transmute::<i32, f32>(i) };
+    y = y * (1.5 - (x2 * y * y));
+    y = y * (1.5 - (x2 * y * y));
+    y
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Color {
@@ -44,6 +58,40 @@ impl Renderable for Image {
 
     fn bounding_box(&self) -> (i32, i32, i32, i32) {
         (self.dest_x, self.dest_y, self.width, self.height)
+    }
+}
+
+struct Line {
+    ax: i32,
+    ay: i32,
+    bx: i32,
+    by: i32,
+    dirx: f32,
+    diry: f32,
+    half_sqdist: f32,
+}
+
+impl Renderable for Line {
+    fn render_pixel(&self, px: i32, py: i32) -> Color {
+        let dot_p_dir = px as f32 * self.dirx + py as f32 * self.diry;
+        let xx = dot_p_dir * self.dirx;
+        let xy = dot_p_dir * self.diry;
+        let sqdist = (px as f32 - xx) * (px as f32 - xx) + (py as f32 - xy) * (py as f32 - xy);
+        if min(self.ax, self.bx) as f32 <= xx && xx <= max(self.ax, self.bx) as f32 &&
+           min(self.ay, self.by) as f32 <= xy && xy <= max(self.ay, self.by) as f32 &&
+           sqdist <= self.half_sqdist {
+            Color::BLACK
+        } else {
+            Color::TRANSPARENT
+        }
+    }
+
+    fn bounding_box(&self) -> (i32, i32, i32, i32) {
+        let minx = min(self.ax, self.bx);
+        let maxx = max(self.ax, self.bx);
+        let miny = min(self.ay, self.by);
+        let maxy = max(self.ay, self.by);
+        (minx, miny, maxx - minx + 1, maxy - miny + 1)
     }
 }
 
@@ -114,6 +162,23 @@ impl Graphic {
             dest_y: dest_y,
             width: width,
             height: height,
+        }));
+    }
+
+    pub fn add_line(&mut self, ax: i32, ay: i32, bx: i32, by: i32, thickness: i32) {
+        let mut dirx = (bx - ax) as f32;
+        let mut diry = (by - ay) as f32;
+        let scale = rsqrt(dirx * dirx + diry * diry);
+        dirx *= scale;
+        diry *= scale;
+        self.add_element(Box::new(Line {
+            ax: ax,
+            ay: ay,
+            bx: bx,
+            by: by,
+            dirx: dirx,
+            diry: diry,
+            half_sqdist: (thickness * thickness) as f32 / 4.0,
         }));
     }
 
