@@ -2,6 +2,7 @@ use rawhw::syscon;
 use rawhw::counter::ct16b1;
 use core::sync::atomic::{fence, Ordering};
 use core::ops::{Deref, DerefMut};
+use core::ptr::{write_volatile, read_volatile};
 
 pub unsafe fn init() {
     // See Section 4.10.4.1 on how to calculate these values.
@@ -33,84 +34,45 @@ pub fn usleep(us: u16) {
     }
 }
 
-pub struct CriticalSection {
-    primask: u32,
+pub struct IsrFlag {
+    flag: bool,
 }
 
-impl CriticalSection {
-    pub fn begin() -> CriticalSection {
-        let mut primask: u32;
-        unsafe {
+impl IsrFlag {
+    pub const fn new() -> IsrFlag {
+        IsrFlag {
+            flag: false,
+        }
+    }
+
+    pub unsafe fn wait(&'static mut self) {
+        let mut current_flag = false;
+        while !current_flag {
+            let mut primask: u32;
             asm!(
                 "mrs $0, primask; cpsid i;"
-                : "=r"(primask) // Outputs
+                : "=r"(primask)  // Outputs
                 :  // Inputs
                 : "primask"  // Clobbers
                 : "volatile"
             );
-        }
-        CriticalSection {
-            primask: primask,
-        }
-    }
-}
-
-impl Drop for CriticalSection {
-    fn drop(&mut self) {
-        unsafe {
+            current_flag = read_volatile(&mut self.flag);
+            if current_flag {
+                write_volatile(&mut self.flag, false);
+            } else {
+                asm!("wfi" :::: "volatile");
+            }
             asm!(
-                "msr primask, $0"
+                "msr primask, $0; isb;"
                 :  // Outputs
-                : "r"(self.primask)  // Inputs
+                : "r"(primask)  // Inputs
                 : "primask"  // Clobbers
                 : "volatile"
             );
         }
     }
-}
 
-pub struct IsrMutex<T> {
-    value: T,
-}
-
-pub struct IsrMutexGuard<'a, T: 'a> {
-    value: &'a mut T,
-    cs: CriticalSection,
-}
-
-impl<T> IsrMutex<T> {
-    pub const fn new(value: T) -> IsrMutex<T> {
-        IsrMutex {
-            value: value,
-        }
-    }
-
-    pub fn lock<'a>(&'a mut self) -> IsrMutexGuard<'a, T> {
-        let cs = CriticalSection::begin();
-        fence(Ordering::Acquire);
-        IsrMutexGuard {
-            value: &mut self.value,
-            cs: cs,
-        }
-    }
-}
-
-impl<'a, T> Drop for IsrMutexGuard<'a, T> {
-    fn drop(&mut self) {
-        fence(Ordering::Release);
-    }
-}
-
-impl<'a, T> Deref for IsrMutexGuard<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        self.value
-    }
-}
-
-impl<'a, T> DerefMut for IsrMutexGuard<'a, T> {
-    fn deref_mut(&mut self) -> &mut T {
-        self.value
+    pub unsafe fn set(&'static mut self) {
+        write_volatile(&mut self.flag, true);
     }
 }
