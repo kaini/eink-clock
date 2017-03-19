@@ -1,0 +1,20 @@
+{
+    "linker": "arm-none-eabi-gcc",
+    "linker-is-gnu": true,
+    "pre-link-args": ["-mthumb", "-mcpu=cortex-m0", "-Tlinker.ld"],
+    "post-link-args": ["-lc", "-lgcc"],
+    "executables": true,
+    "panic-strategy": "abort",
+    "relocation-model": "static",
+    "llvm-target": "thumbv6m-none-eabi",
+    "target-endian": "little",
+    "target-pointer-width": "32",
+    "data-layout": "e-m:e-p:32:32-i64:64-v128:64:128-a:0:32-n32-S64",
+    "arch": "arm",
+    "os": "none",
+    "env": "",
+    "vendor": "",
+    "features": "+strict-align",
+    "max-atomic-width": 0,
+    "cpu": "cortex-m0"
+}

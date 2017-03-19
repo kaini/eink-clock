@@ -6,12 +6,7 @@ build = "build.rs"
 
 [profile.dev]
 opt-level = 3
-debug = true
-rpath = false
-lto = false
 debug-assertions = false
-codegen-units = 1
-panic = "abort"
 
 [features]
 semihosted = []

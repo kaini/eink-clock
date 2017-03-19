@@ -4,12 +4,8 @@
 #![feature(alloc)]
 #![feature(start)]
 #![feature(asm)]
-#![feature(link_args)]
 #![feature(const_fn)]
 #![cfg_attr(test, allow(dead_code))]
-
-#[cfg_attr(not(test), link_args = "-mthumb -mcpu=cortex-m0 -Tlinker.ld -lc -lgcc")]
-extern {}
 
 #[cfg(not(test))]
 extern crate my_allocator;
