@@ -5,8 +5,8 @@
 #![feature(start)]
 #![feature(asm)]
 #![feature(const_fn)]
-#![cfg_attr(not(test), feature(compiler_builtins_lib))]
 #![cfg_attr(test, allow(dead_code))]
+#![cfg_attr(not(test), no_builtins)]
 
 #[cfg(not(test))]
 extern crate my_allocator;
@@ -14,7 +14,7 @@ extern crate my_allocator;
 extern crate collections;
 extern crate alloc;
 #[cfg(not(test))]
-extern crate compiler_builtins;
+extern crate rlibc;
 
 #[macro_use]
 mod debug;
@@ -59,6 +59,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
                 &format!("{} {}.{}.", WEEKDAYS[now.weekday() as usize], now.day(), now.month()),
                 &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
             graphic.add_line(50, 50, 400, 400, 20);
+            graphic.add_line(100, 650, 500, 250, 30);
 
             let eink_start_time = clock::current_time();
             eink.enable();
@@ -258,4 +259,28 @@ pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
 #[no_mangle]
 pub unsafe extern fn abort() -> ! {
     loop {}
+}
+
+#[cfg(not(test))]
+#[no_mangle]
+pub unsafe extern fn __aeabi_memcpy4(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    rlibc::memcpy(dest, src, n)
+}
+
+#[cfg(not(test))]
+#[no_mangle]
+pub unsafe extern fn __aeabi_memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    rlibc::memcpy(dest, src, n)
+}
+
+#[cfg(not(test))]
+#[no_mangle]
+pub unsafe extern fn __aeabi_memclr(dest: *mut u8, n: usize) {
+    rlibc::memset(dest, 0, n);
+}
+
+#[cfg(not(test))]
+#[no_mangle]
+pub unsafe extern fn __aeabi_memclr4(dest: *mut u8, n: usize) {
+    rlibc::memset(dest, 0, n);
 }
