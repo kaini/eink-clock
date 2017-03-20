@@ -6,7 +6,7 @@ build = "build.rs"
 
 [profile.dev]
 opt-level = 3
-debug-assertions = false
+debug-assertions = true
 
 [features]
 semihosted = []
