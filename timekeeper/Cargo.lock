@@ -2,10 +2,36 @@
 name = "timekeeper"
 version = "0.1.0"
 dependencies = [
+ "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins.git?rev=9681358)",
  "my_allocator 0.1.0",
 ]
 
 [[package]]
+name = "compiler_builtins"
+version = "0.1.0"
+source = "git+https://github.com/rust-lang-nursery/compiler-builtins.git?rev=9681358#9681358dc53dcabab868df6a7eaf7fb69d586933"
+dependencies = [
+ "rustc-cfg 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "linked_list_allocator"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "my_allocator"
 version = "0.1.0"
+dependencies = [
+ "linked_list_allocator 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
+[[package]]
+name = "rustc-cfg"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[metadata]
+"checksum compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins.git?rev=9681358)" = "<none>"
+"checksum linked_list_allocator 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ad1399b725177d144e05de0fbcc522de2c21ac07001d3efe916ca408980a04ee"
+"checksum rustc-cfg 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "56a596b5718bf5e059d59a30af12f7f462a152de147aa462b70892849ee18704"

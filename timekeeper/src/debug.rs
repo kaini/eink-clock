@@ -9,10 +9,7 @@ pub unsafe fn write0(ptr: *const u8) {
     );
 }
 
-#[cfg(not(feature = "semihosted"))]
-pub unsafe fn write0(_ptr: *const u8) {
-}
-
+#[cfg(feature = "semihosted")]
 macro_rules! debug {
     ($fmt:expr, $($args:tt)*) => ({
         let s = ::collections::fmt::format(format_args!(concat!($fmt, "\n\0"), $($args)*));
@@ -21,4 +18,10 @@ macro_rules! debug {
     ($msg:expr) => ({
         debug!($msg,);
     });
+}
+
+#[cfg(not(feature = "semihosted"))]
+macro_rules! debug {
+    ($fmt:expr, $($args:tt)*) => ();
+    ($msg:expr) => ();
 }

@@ -5,6 +5,7 @@
 #![feature(start)]
 #![feature(asm)]
 #![feature(const_fn)]
+#![cfg_attr(not(test), feature(compiler_builtins_lib))]
 #![cfg_attr(test, allow(dead_code))]
 
 #[cfg(not(test))]
@@ -12,6 +13,8 @@ extern crate my_allocator;
 #[macro_use]
 extern crate collections;
 extern crate alloc;
+#[cfg(not(test))]
+extern crate compiler_builtins;
 
 #[macro_use]
 mod debug;
@@ -31,10 +34,6 @@ const WEEKDAYS: [&str; 7] = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let mut eink = unsafe { eink::Eink::new() };
-    unsafe {
-        dcf77::init();
-        clock::init();
-    }
 
     let mut zero_time = adjust_time(&mut eink);
     let mut clear = true;
@@ -197,7 +196,6 @@ pub extern fn reset_handler() {
         static mut __data_start__: u32;
         static mut __data_end__: u32;
         static __data_source_start__: u32;
-        fn _start();
     }
 
     unsafe {
@@ -217,8 +215,13 @@ pub extern fn reset_handler() {
         let data_size = (&__data_end__ as *const u32 as usize) - (&__data_start__ as *const u32 as usize);
         ptr::copy_nonoverlapping(&__data_source_start__, &mut __data_start__, data_size / 4);
 
-        // Initialize the runtime
-        _start();
+        // Init other hardware & runtime
+        my_allocator::init();
+        dcf77::init();
+        clock::init();
+
+        // Let's go
+        main(0, ptr::null());
     }
 
     panic!("Reset handler has quit");
@@ -255,31 +258,4 @@ pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
 #[no_mangle]
 pub unsafe extern fn abort() -> ! {
     loop {}
-}
-
-#[cfg(not(test))]
-#[no_mangle]
-pub unsafe extern fn _exit() -> ! {
-    loop {}
-}
-
-#[cfg(not(test))]
-#[no_mangle]
-pub unsafe extern fn _sbrk(incr: isize) -> *mut u8 {
-    extern {
-        static mut __heap_start__: u8;
-        static mut __heap_end__: u8;
-    }
-
-    static mut HEAP_END: *mut u8 = ptr::null_mut();
-    if HEAP_END == ptr::null_mut() {
-        HEAP_END = &mut __heap_start__;
-    }
-
-    let prev_heap_end = HEAP_END;
-    if (HEAP_END.offset(incr) as usize) > (&__heap_end__ as *const u8 as usize) {
-        panic!("Heap overflow!");
-    }
-    HEAP_END = HEAP_END.offset(incr);
-    prev_heap_end
 }

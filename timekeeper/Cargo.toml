@@ -17,3 +17,8 @@ crate-type = ["bin"]
 
 [dependencies]
 my_allocator = { path = "../my_allocator" }
+
+[dependencies.compiler_builtins]
+git = "https://github.com/rust-lang-nursery/compiler-builtins.git"
+rev = "9681358"
+features = ["compiler-builtins", "mem"]
