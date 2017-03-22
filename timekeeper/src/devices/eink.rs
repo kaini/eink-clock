@@ -78,194 +78,181 @@ macro_rules! setup_output {
     });
 }
 
-pub struct Eink {
-    _phantom: (),
+pub unsafe fn init() {
+    setup_output!(onpos_ioconfig, onpos_gpio, ONPOS_BIT);
+    setup_output!(onneg_ioconfig, onneg_gpio, ONNEG_BIT);
+    setup_output!(don_ioconfig, don_gpio, DON_BIT);
+    don_ioconfig::drv::set(true);
+    setup_output!(dd0_ioconfig, dd_gpio, DD_SHIFT + 0);
+    setup_output!(dd1_ioconfig, dd_gpio, DD_SHIFT + 1);
+    setup_output!(dd2_ioconfig, dd_gpio, DD_SHIFT + 2);
+    setup_output!(dd3_ioconfig, dd_gpio, DD_SHIFT + 3);
+    setup_output!(dd4_ioconfig, dd_gpio, DD_SHIFT + 4);
+    setup_output!(dd5_ioconfig, dd_gpio, DD_SHIFT + 5);
+    setup_output!(dd6_ioconfig, dd_gpio, DD_SHIFT + 6);
+    setup_output!(dd7_ioconfig, dd_gpio, DD_SHIFT + 7);
+    setup_output!(dcl_ioconfig, dcl_gpio, DCL_BIT);
+    setup_output!(dle_ioconfig, dle_gpio, DLE_BIT);
+    doe_gpio::dir::set_bit(DOE_BIT);
+    doe_gpio::clr::set(1 << DOE_BIT);
+    setup_output!(dgmode_ioconfig, dgmode_gpio, DGMODE_BIT);
+    setup_output!(dspv_ioconfig, dspv_gpio, DSPV_BIT);
+    setup_output!(dckv_ioconfig, dckv_gpio, DCKV_BIT);
+    setup_output!(dsph_ioconfig, dsph_gpio, DSPH_BIT);
 }
 
-impl Eink {
-    pub unsafe fn new() -> Eink {
-        setup_output!(onpos_ioconfig, onpos_gpio, ONPOS_BIT);
-        setup_output!(onneg_ioconfig, onneg_gpio, ONNEG_BIT);
-        setup_output!(don_ioconfig, don_gpio, DON_BIT);
-        don_ioconfig::drv::set(true);
-        setup_output!(dd0_ioconfig, dd_gpio, DD_SHIFT + 0);
-        setup_output!(dd1_ioconfig, dd_gpio, DD_SHIFT + 1);
-        setup_output!(dd2_ioconfig, dd_gpio, DD_SHIFT + 2);
-        setup_output!(dd3_ioconfig, dd_gpio, DD_SHIFT + 3);
-        setup_output!(dd4_ioconfig, dd_gpio, DD_SHIFT + 4);
-        setup_output!(dd5_ioconfig, dd_gpio, DD_SHIFT + 5);
-        setup_output!(dd6_ioconfig, dd_gpio, DD_SHIFT + 6);
-        setup_output!(dd7_ioconfig, dd_gpio, DD_SHIFT + 7);
-        setup_output!(dcl_ioconfig, dcl_gpio, DCL_BIT);
-        setup_output!(dle_ioconfig, dle_gpio, DLE_BIT);
-        doe_gpio::dir::set_bit(DOE_BIT);
-        doe_gpio::clr::set(1 << DOE_BIT);
-        setup_output!(dgmode_ioconfig, dgmode_gpio, DGMODE_BIT);
-        setup_output!(dspv_ioconfig, dspv_gpio, DSPV_BIT);
-        setup_output!(dckv_ioconfig, dckv_gpio, DCKV_BIT);
-        setup_output!(dsph_ioconfig, dsph_gpio, DSPH_BIT);
-
-        Eink {
-            _phantom: (),
-        }
-    }
-
-    pub fn enable(&mut self) {
-        unsafe {
-            don_gpio::set::set(1 << DON_BIT);
-            usleep(100);
-            onneg_gpio::set::set(1 << ONNEG_BIT);
-            usleep(1000);
-            onpos_gpio::set::set(1 << ONPOS_BIT);
-            usleep(1000);
-        }
-    }
-
-    pub fn disable(&mut self) {
-        unsafe {
-            onpos_gpio::clr::set(1 << ONPOS_BIT);
-            usleep(1000);
-            onneg_gpio::clr::set(1 << ONNEG_BIT);
-            usleep(1000);
-            don_gpio::clr::set(1 << DON_BIT);
-            usleep(100);
-        }
-    }
-
-    unsafe fn draw_mode_on(&mut self) {
-        dgmode_gpio::set::set(1 << DGMODE_BIT);
-        dckv_gpio::set::set(1 << DCKV_BIT);
-        dsph_gpio::set::set(1 << DSPH_BIT);
-        usleep(1000);
-    }
-
-    unsafe fn draw_mode_off(&mut self) {
-        dd_gpio::clr::set(0xFF << DD_SHIFT);
-        dcl_gpio::clr::set(1 << DCL_BIT);
-        dle_gpio::clr::set(1 << DLE_BIT);
-        doe_gpio::clr::set(1 << DOE_BIT);
-        dgmode_gpio::clr::set(1 << DGMODE_BIT);
-        dspv_gpio::clr::set(1 << DSPV_BIT);
-        dckv_gpio::clr::set(1 << DCKV_BIT);
-        dsph_gpio::clr::set(1 << DSPH_BIT);
-    }
-
-    unsafe fn advance_line(&mut self) {
-        dckv_gpio::clr::set(1 << DCKV_BIT);
-        usleep(1);
-        dckv_gpio::set::set(1 << DCKV_BIT);
-        usleep(1);
-    }
-
-    unsafe fn begin_frame(&mut self) {
-        dspv_gpio::set::set(1 << DSPV_BIT);
-        usleep(500);
-        dspv_gpio::clr::set(1 << DSPV_BIT);
-        usleep(1);
-        dckv_gpio::clr::set(1 << DCKV_BIT);
-        usleep(25);
-        dckv_gpio::set::set(1 << DCKV_BIT);
-        usleep(1);
-        dspv_gpio::set::set(1 << DSPV_BIT);
-        usleep(25);
-
-        // For some reason I have to advance 3 times to fill the whole screen
-        self.advance_line();
-        self.advance_line();
-        self.advance_line();
-    }
-
-    unsafe fn end_frame(&mut self) {
-    }
-
-    unsafe fn begin_line(&mut self) {
-        doe_gpio::set::set(1 << DOE_BIT);
-        dsph_gpio::clr::set(1 << DSPH_BIT);
-        usleep(1);
-    }
-
-    unsafe fn end_line(&mut self) {
-        dsph_gpio::set::set(1 << DSPH_BIT);
-        usleep(1);
-
-        dcl_gpio::set::set(1 << DCL_BIT);
-        dckv_gpio::clr::set(1 << DCKV_BIT);
-        usleep(1);
-        dcl_gpio::clr::set(1 << DCL_BIT);
-        usleep(1);
-        dckv_gpio::set::set(1 << DCKV_BIT);
-        usleep(1);
-        doe_gpio::clr::set(1 << DOE_BIT);
-        usleep(200);
-        doe_gpio::set::set(1 << DOE_BIT);
-        usleep(1);
-        dle_gpio::set::set(1 << DLE_BIT);
-        usleep(1);
-        dle_gpio::clr::set(1 << DLE_BIT);
-        usleep(1);
-        
-        doe_gpio::clr::set(1 << DOE_BIT);
-    }
-
-    // Use the constants NOOP, WHITE, BLACK.
-    unsafe fn set_four_pixels(&mut self, pixels: &[u8; 4]) {
-        dd_gpio::mask::set(!(0xFF << DD_SHIFT));
-        dd_gpio::out::set((((pixels[0] << 6) | (pixels[1] << 4) | (pixels[2] << 2) | pixels[3]) as u32) << DD_SHIFT);
-        dd_gpio::mask::set(0);
-        dcl_gpio::set::set(1 << DCL_BIT);
-        usleep(1);
-        dcl_gpio::clr::set(1 << DCL_BIT);
-        usleep(1);
-    }
-
-    unsafe fn clear(&mut self) {
-        self.begin_frame();
-        for _ in 0..600 {
-            self.begin_line();
-            for _ in 0..200 {
-                self.set_four_pixels(&[WHITE; 4]);
-            }
-            self.end_line();
-        }
-        self.end_frame();
-    }
-
-    pub fn render<Draw>(&mut self, clear: bool, mut draw: Draw)
-            where Draw: FnMut(i32, &mut [u8; BUFFER_BYTES]) {
-        unsafe {
-            self.draw_mode_on();
-
-            if clear {
-                self.clear();
-            }
-
-            self.begin_frame();
-            for scanline in 0..SCANLINES {
-                draw(scanline, &mut BUFFER);
-                let mut buffer_byte = 0;
-
-                self.begin_line();
-                for _ in 0..(SCANLINE_WIDTH / 8) {
-                    self.set_four_pixels(&[
-                        if (BUFFER[buffer_byte] & (1 << 0)) != 0 { BLACK } else { WHITE },
-                        if (BUFFER[buffer_byte] & (1 << 1)) != 0 { BLACK } else { WHITE },
-                        if (BUFFER[buffer_byte] & (1 << 2)) != 0 { BLACK } else { WHITE },
-                        if (BUFFER[buffer_byte] & (1 << 3)) != 0 { BLACK } else { WHITE },
-                    ]);
-                    self.set_four_pixels(&[
-                        if (BUFFER[buffer_byte] & (1 << 4)) != 0 { BLACK } else { WHITE },
-                        if (BUFFER[buffer_byte] & (1 << 5)) != 0 { BLACK } else { WHITE },
-                        if (BUFFER[buffer_byte] & (1 << 6)) != 0 { BLACK } else { WHITE },
-                        if (BUFFER[buffer_byte] & (1 << 7)) != 0 { BLACK } else { WHITE },
-                    ]);
-                    buffer_byte += 1;
-                }
-                self.end_line();
-            }
-            self.end_frame();
-
-            self.draw_mode_off();
-        }
-    }
+unsafe fn enable() {
+    don_gpio::set::set(1 << DON_BIT);
+    usleep(100);
+    onneg_gpio::set::set(1 << ONNEG_BIT);
+    usleep(1000);
+    onpos_gpio::set::set(1 << ONPOS_BIT);
+    usleep(1000);
 }
 
+unsafe fn disable() {
+    onpos_gpio::clr::set(1 << ONPOS_BIT);
+    usleep(1000);
+    onneg_gpio::clr::set(1 << ONNEG_BIT);
+    usleep(1000);
+    don_gpio::clr::set(1 << DON_BIT);
+    usleep(100);
+}
+
+unsafe fn draw_mode_on() {
+    dgmode_gpio::set::set(1 << DGMODE_BIT);
+    dckv_gpio::set::set(1 << DCKV_BIT);
+    dsph_gpio::set::set(1 << DSPH_BIT);
+    usleep(1000);
+}
+
+unsafe fn draw_mode_off() {
+    dd_gpio::clr::set(0xFF << DD_SHIFT);
+    dcl_gpio::clr::set(1 << DCL_BIT);
+    dle_gpio::clr::set(1 << DLE_BIT);
+    doe_gpio::clr::set(1 << DOE_BIT);
+    dgmode_gpio::clr::set(1 << DGMODE_BIT);
+    dspv_gpio::clr::set(1 << DSPV_BIT);
+    dckv_gpio::clr::set(1 << DCKV_BIT);
+    dsph_gpio::clr::set(1 << DSPH_BIT);
+}
+
+unsafe fn advance_line() {
+    dckv_gpio::clr::set(1 << DCKV_BIT);
+    usleep(1);
+    dckv_gpio::set::set(1 << DCKV_BIT);
+    usleep(1);
+}
+
+unsafe fn begin_frame() {
+    dspv_gpio::set::set(1 << DSPV_BIT);
+    usleep(500);
+    dspv_gpio::clr::set(1 << DSPV_BIT);
+    usleep(1);
+    dckv_gpio::clr::set(1 << DCKV_BIT);
+    usleep(25);
+    dckv_gpio::set::set(1 << DCKV_BIT);
+    usleep(1);
+    dspv_gpio::set::set(1 << DSPV_BIT);
+    usleep(25);
+
+    // For some reason I have to advance 3 times to fill the whole screen
+    advance_line();
+    advance_line();
+    advance_line();
+}
+
+unsafe fn end_frame() {
+}
+
+unsafe fn begin_line() {
+    doe_gpio::set::set(1 << DOE_BIT);
+    dsph_gpio::clr::set(1 << DSPH_BIT);
+    usleep(1);
+}
+
+unsafe fn end_line() {
+    dsph_gpio::set::set(1 << DSPH_BIT);
+    usleep(1);
+
+    dcl_gpio::set::set(1 << DCL_BIT);
+    dckv_gpio::clr::set(1 << DCKV_BIT);
+    usleep(1);
+    dcl_gpio::clr::set(1 << DCL_BIT);
+    usleep(1);
+    dckv_gpio::set::set(1 << DCKV_BIT);
+    usleep(1);
+    doe_gpio::clr::set(1 << DOE_BIT);
+    usleep(200);
+    doe_gpio::set::set(1 << DOE_BIT);
+    usleep(1);
+    dle_gpio::set::set(1 << DLE_BIT);
+    usleep(1);
+    dle_gpio::clr::set(1 << DLE_BIT);
+    usleep(1);
+    
+    doe_gpio::clr::set(1 << DOE_BIT);
+}
+
+// Use the constants NOOP, WHITE, BLACK.
+unsafe fn set_four_pixels(pixels: &[u8; 4]) {
+    dd_gpio::mask::set(!(0xFF << DD_SHIFT));
+    dd_gpio::out::set((((pixels[0] << 6) | (pixels[1] << 4) | (pixels[2] << 2) | pixels[3]) as u32) << DD_SHIFT);
+    dd_gpio::mask::set(0);
+    dcl_gpio::set::set(1 << DCL_BIT);
+    usleep(1);
+    dcl_gpio::clr::set(1 << DCL_BIT);
+    usleep(1);
+}
+
+unsafe fn clear() {
+    begin_frame();
+    for _ in 0..600 {
+        begin_line();
+        for _ in 0..200 {
+            set_four_pixels(&[WHITE; 4]);
+        }
+        end_line();
+    }
+    end_frame();
+}
+
+pub fn render<Draw>(clear: bool, mut draw: Draw)
+        where Draw: FnMut(i32, &mut [u8; BUFFER_BYTES]) {
+    unsafe {
+        enable();
+        draw_mode_on();
+
+        if clear {
+            self::clear();
+        }
+
+        begin_frame();
+        for scanline in 0..SCANLINES {
+            draw(scanline, &mut BUFFER);
+            let mut buffer_byte = 0;
+
+            begin_line();
+            for _ in 0..(SCANLINE_WIDTH / 8) {
+                set_four_pixels(&[
+                    if (BUFFER[buffer_byte] & (1 << 0)) != 0 { BLACK } else { WHITE },
+                    if (BUFFER[buffer_byte] & (1 << 1)) != 0 { BLACK } else { WHITE },
+                    if (BUFFER[buffer_byte] & (1 << 2)) != 0 { BLACK } else { WHITE },
+                    if (BUFFER[buffer_byte] & (1 << 3)) != 0 { BLACK } else { WHITE },
+                ]);
+                set_four_pixels(&[
+                    if (BUFFER[buffer_byte] & (1 << 4)) != 0 { BLACK } else { WHITE },
+                    if (BUFFER[buffer_byte] & (1 << 5)) != 0 { BLACK } else { WHITE },
+                    if (BUFFER[buffer_byte] & (1 << 6)) != 0 { BLACK } else { WHITE },
+                    if (BUFFER[buffer_byte] & (1 << 7)) != 0 { BLACK } else { WHITE },
+                ]);
+                buffer_byte += 1;
+            }
+            end_line();
+        }
+        end_frame();
+
+        draw_mode_off();
+        disable();
+    }
+}
