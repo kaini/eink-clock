@@ -1,6 +1,5 @@
 use rawhw::ioconfig::Pullup;
 use devices::cpu::usleep;
-use rawhw;
 
 // ONPOS
 use rawhw::gpio::gpio0 as onpos_gpio;
@@ -41,7 +40,6 @@ const DLE_BIT: u32 = 9;
 
 // DOE
 use rawhw::gpio::gpio0 as doe_gpio;
-use rawhw::ioconfig::pio0_10 as doe_ioconfig;
 const DOE_BIT: u32 = 10;
 
 // DGMODE
@@ -64,7 +62,6 @@ use rawhw::gpio::gpio0 as dsph_gpio;
 use rawhw::ioconfig::pio0_17 as dsph_ioconfig;
 const DSPH_BIT: u32 = 17;
 
-const NOOP: u8  = 0b00;
 const WHITE: u8 = 0b10;
 const BLACK: u8 = 0b01;
 

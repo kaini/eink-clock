@@ -1,4 +1,3 @@
-use devices::dcf77::PAYLOAD_BITS;
 use core::result::Result;
 
 pub fn is_leap_year(year: i32) -> bool {
@@ -231,6 +230,7 @@ impl Datetime {
 #[cfg(test)]
 mod test {
     use super::*;
+    use devices::dcf77::PAYLOAD_BITS;
 
     #[test]
     fn test_parity() {

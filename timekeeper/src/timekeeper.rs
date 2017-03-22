@@ -6,7 +6,7 @@
 #![feature(asm)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-#![cfg_attr(test, allow(dead_code))]
+#![allow(dead_code)]
 #![cfg_attr(not(test), no_builtins)]
 
 #[cfg(not(test))]
@@ -27,7 +27,6 @@ use devices::{cpu, eink, flash, dcf77, clock};
 use app::datetime::Datetime;
 use app::graphics::{Graphic, HorizontalAlign, Color};
 use core::ptr;
-use collections::String;
 use core::f32::consts::PI;
 use core::intrinsics::{sinf32, cosf32, roundf32};
 
