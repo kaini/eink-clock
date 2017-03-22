@@ -35,9 +35,7 @@ const WEEKDAYS: [&str; 7] = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let mut eink = unsafe { eink::Eink::new() };
-
-    let mut zero_time = adjust_time(&mut eink);
+    let mut zero_time = adjust_time();
     let mut clear = true;
     let mut last_repaint_minute = -1;
 
@@ -46,7 +44,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         let now = { let mut now = zero_time.clone(); now.offset_seconds(now_ms / 1000); now };
 
         if now_ms > RESYNC_TIME {
-            zero_time = adjust_time(&mut eink);
+            zero_time = adjust_time();
         }
 
         if now.minute() != last_repaint_minute  {
@@ -75,8 +73,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
             graphic.add_line(300, 300, hour_x, hour_y, 30);
 
             let eink_start_time = clock::current_time();
-            eink.enable();
-            eink.render(clear, |scanline, buffer| {
+            eink::render(clear, |scanline, buffer| {
                 let x = eink::SCANLINES - scanline - 1;
                 for y in 0..(eink::SCANLINE_WIDTH / 8) {
                     buffer[y as usize] =
@@ -90,7 +87,6 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
                             ((if graphic.render_pixel(x, y * 8 + 7) == Color::BLACK { 1 } else { 0 }) << 7);
                 }
             });
-            eink.disable();
             clear = false;
             let eink_end_time = clock::current_time();
             debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);
@@ -99,34 +95,16 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 }
 
 /// Receives the time and returns the new zero time.
-fn adjust_time(eink: &mut eink::Eink) -> Datetime {
+fn adjust_time() -> Datetime {
     // For quick testing
     //clock::offset_time(-clock::current_time());
     //return Datetime::new(2000, 1, 1, 12, 30, 0, 3600).unwrap();
 
-    eink.enable();
-    eink.render(true, |scanline, buffer| {
+    eink::render(true, |_scanline, buffer| {
         for b in buffer.iter_mut() {
             *b = 0;
         }
-
-        let x = eink::SCANLINES - scanline - 1;
-        for y in 0..eink::SCANLINE_WIDTH {
-            let mut xx = x;
-            let mut yy = y;
-            let mut result = 0;
-            while xx > 0 || yy > 0 {
-                if xx % 3 == 1 && yy % 3 == 1 {
-                    result = 1;
-                    break;
-                }
-                xx /= 3;
-                yy /= 3;
-            }
-            buffer[y as usize / 8] |= result << (y % 8);
-        }
     });
-    eink.disable();
 
     loop {
         let payload = dcf77::receive();
@@ -232,6 +210,7 @@ pub extern fn reset_handler() {
         ptr::copy_nonoverlapping(&__data_source_start__, &mut __data_start__, data_size / 4);
 
         // Init other hardware & runtime
+        eink::init();
         my_allocator::init();
         dcf77::init();
         clock::init();
