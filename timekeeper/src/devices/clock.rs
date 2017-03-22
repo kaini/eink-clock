@@ -27,6 +27,6 @@ pub fn current_time() -> i32 {
 
 pub fn offset_time(offset: i32) {
     unsafe {
-        rtc::dr::set((current_time() + offset) as u32);
+        rtc::lr::set((current_time() + offset) as u32);
     }
 }

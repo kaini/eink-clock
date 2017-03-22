@@ -6,7 +6,7 @@ build = "build.rs"
 
 [profile.dev]
 opt-level = 3
-debug-assertions = true
+debug-assertions = false  # Disabled because of LLVM bug #00000.
 
 [features]
 semihosted = []

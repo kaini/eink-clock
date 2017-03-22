@@ -5,6 +5,7 @@
 #![feature(start)]
 #![feature(asm)]
 #![feature(const_fn)]
+#![feature(core_intrinsics)]
 #![cfg_attr(test, allow(dead_code))]
 #![cfg_attr(not(test), no_builtins)]
 
@@ -27,6 +28,8 @@ use app::datetime::Datetime;
 use app::graphics::{Graphic, HorizontalAlign, Color};
 use core::ptr;
 use collections::String;
+use core::f32::consts::PI;
+use core::intrinsics::{sinf32, cosf32, roundf32};
 
 const RESYNC_TIME: u32 = 7 * 24 * 60 * 60 * 1000;  // 7 days
 const WEEKDAYS: [&str; 7] = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
@@ -46,7 +49,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         if now.minute() != last_repaint_minute  {
             last_repaint_minute = now.minute();
 
-            let status_line = format!("LAST SYNC: {}.{}.{} {:02}:{:02}",
+            let status_line = format!("RTC: {}    LAST SYNC: {}.{}.{} {:02}:{:02}",
+                now_ms,
                 zero_time.day(), zero_time.month(), zero_time.year(),
                 zero_time.hour(), zero_time.minute());
 
@@ -58,8 +62,14 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
             graphic.add_text(
                 &format!("{} {}.{}.", WEEKDAYS[now.weekday() as usize], now.day(), now.month()),
                 &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
-            graphic.add_line(50, 50, 400, 400, 20);
-            graphic.add_line(100, 650, 500, 250, 30);
+            let minute_angle = -PI / 30.0 * now.minute() as f32 - PI / 2.0;
+            let minute_x = 300 + round(-cos(minute_angle) * 280.0) as i32;
+            let minute_y = 300 + round(sin(minute_angle) * 280.0) as i32;
+            graphic.add_line(300, 300, minute_x, minute_y, 20);
+            let hour_angle = -PI / 360.0 * ((now.hour() % 12) * 60 + now.minute()) as f32 - PI / 2.0;
+            let hour_x = 300 + round(-cos(hour_angle) * 200.0) as i32;
+            let hour_y = 300 + round(sin(hour_angle) * 200.0) as i32;
+            graphic.add_line(300, 300, hour_x, hour_y, 30);
 
             let eink_start_time = clock::current_time();
             eink.enable();
@@ -87,7 +97,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
 /// Receives the time and returns the new zero time.
 fn adjust_time(eink: &mut eink::Eink) -> Datetime {
-    return Datetime::new(2000, 1, 1, 12, 30, 0, 3600).unwrap();
+    // For quick testing
+    // return Datetime::new(2000, 1, 1, 12, 30, 0, 3600).unwrap();
 
     eink.enable();
     eink.render(true, |scanline, buffer| {
@@ -283,4 +294,16 @@ pub unsafe extern fn __aeabi_memclr(dest: *mut u8, n: usize) {
 #[no_mangle]
 pub unsafe extern fn __aeabi_memclr4(dest: *mut u8, n: usize) {
     rlibc::memset(dest, 0, n);
+}
+
+fn sin(f: f32) -> f32 {
+    unsafe { sinf32(f) }
+}
+
+fn cos(f: f32) -> f32 {
+    unsafe { cosf32(f) }
+}
+
+fn round(f: f32) -> f32 {
+    unsafe { roundf32(f) }
 }
