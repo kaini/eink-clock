@@ -61,36 +61,69 @@ impl Renderable for Image {
     }
 }
 
+// ax + by + c = 0
+#[derive(Debug)]
 struct Line {
-    ax: i32,
-    ay: i32,
-    bx: i32,
-    by: i32,
-    dirx: f32,
-    diry: f32,
-    half_sqdist: f32,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    d: i32,
+
+    a: i32,  // a = y2 - y1
+    b: i32,  // b = x2 - x1
+    c: i32,  // c = x2*y1 - y2*x1
+    dist_test: i32,  // d²(a² + b²)
+
+    minx_test: i32,  // min(x1, x2) * (a² + b²) + a*c
+    maxx_test: i32,  // max(x1, x2) * (a² + b²) + a*c
+    miny_test: i32,  // min(y1, y2) * (a² + b²)
+    maxy_test: i32,  // max(y1, y2) * (a² + b²)
 }
 
 impl Renderable for Line {
-    fn render_pixel(&self, px: i32, py: i32) -> Color {
-        let dot_p_dir = px as f32 * self.dirx + py as f32 * self.diry;
-        let xx = dot_p_dir * self.dirx;
-        let xy = dot_p_dir * self.diry;
-        let sqdist = (px as f32 - xx) * (px as f32 - xx) + (py as f32 - xy) * (py as f32 - xy);
-        if min(self.ax, self.bx) as f32 <= xx && xx <= max(self.ax, self.bx) as f32 &&
-           min(self.ay, self.by) as f32 <= xy && xy <= max(self.ay, self.by) as f32 &&
-           sqdist <= self.half_sqdist {
-            Color::BLACK
-        } else {
-            Color::TRANSPARENT
+    fn render_pixel(&self, x: i32, y: i32) -> Color {
+        // First test the distance to the unbounded line
+        //     |a*x + b*y + c| / sqrt(a² + b²) <= d
+        // <=> (a*x + b*y + c)² / (a² + b²) <= d²
+        // <=> (a*x + b*y + c)² <= d²(a² + b²)
+        let q = self.a * x + self.b * y + self.c;
+        // TODO The next two lines are using `as i64` instead of an overflow-checking
+        //      multiply because of LLVM bug #00000.
+        let q = q as i64 * q as i64;
+        // Test if the point is too far away from the line
+        if q > self.dist_test as i64 {
+            return Color::TRANSPARENT;
         }
+        // If the point is inside the (x1,y1)-(x2,y2) box it is surely on the
+        // line, because the endings are never in this box.
+        if min(self.x1, self.x2) <= x && x <= max(self.x1, self.x2) &&
+           min(self.y1, self.y2) <= y && y <= max(self.y1, self.y2) {
+            return Color::BLACK;
+        }
+        // Now test if the projection on the line is between the start and endpoint.
+        //     min_x <= (b(b*x - a*y) - a*c) / (a² + b²) <= max_x
+        // <=> min_x(a² + b²) <= b(b*x - a*y) - a*c <= max_x(a² + b²)
+        // <=> min_x(a² + b²) + a*c <= b(b*x - a*y) <= max_x(a² + b²) + a*c
+        // Similar for y:
+        //     min_y <= (a(a*y - b*x) - b*c) / (a² + b²) <= max_y
+        // <=> min_y(a² + b²) <= a(a*y - b*x) - b*c <= max_y(a² + b²)
+        // <=> min_y(a² + b²) + b*c <= a(a*y - b*x) <= max_y(a² + b²) + b*c
+        let x_test = self.b * (self.b * x - self.a * y);
+        let y_test = self.a * (self.a * y - self.b * x);
+        if self.minx_test <= x_test && x_test <= self.maxx_test &&
+           self.miny_test <= y_test && y_test <= self.maxy_test {
+            return Color::BLACK
+        }
+        // The pixel is not relevant for this line
+        Color::TRANSPARENT
     }
 
     fn bounding_box(&self) -> (i32, i32, i32, i32) {
-        let minx = min(self.ax, self.bx);
-        let maxx = max(self.ax, self.bx);
-        let miny = min(self.ay, self.by);
-        let maxy = max(self.ay, self.by);
+        let minx = min(self.x1, self.x2) - self.d - 1;
+        let maxx = max(self.x1, self.x2) + self.d + 1;
+        let miny = min(self.y1, self.y2) - self.d - 1;
+        let maxy = max(self.y1, self.y2) + self.d + 1;
         (minx, miny, maxx - minx + 1, maxy - miny + 1)
     }
 }
@@ -165,20 +198,26 @@ impl Graphic {
         }));
     }
 
-    pub fn add_line(&mut self, ax: i32, ay: i32, bx: i32, by: i32, thickness: i32) {
-        let mut dirx = (bx - ax) as f32;
-        let mut diry = (by - ay) as f32;
-        let scale = rsqrt(dirx * dirx + diry * diry);
-        dirx *= scale;
-        diry *= scale;
+    pub fn add_line(&mut self, x1: i32, y1: i32, x2: i32, y2: i32, thickness: i32) {
+        let d = if thickness > 1 { thickness / 2  } else { 1 };
+        let a = y2 - y1;
+        let b = x1 - x2;
+        let c = x2 * y1 - y2 * x1;
+        let sqsum = a * a + b * b;
         self.add_element(Box::new(Line {
-            ax: ax,
-            ay: ay,
-            bx: bx,
-            by: by,
-            dirx: dirx,
-            diry: diry,
-            half_sqdist: (thickness * thickness) as f32 / 4.0,
+            x1: x1,
+            y1: y1,
+            x2: x2,
+            y2: y2,
+            d: d,
+            a: a,
+            b: b,
+            c: c,
+            dist_test: d * d * sqsum,
+            minx_test: min(x1, x2) * sqsum + a * c,
+            maxx_test: max(x1, x2) * sqsum + a * c,
+            miny_test: min(y1, y2) * sqsum + b * c,
+            maxy_test: max(y1, y2) * sqsum + b * c,
         }));
     }
 

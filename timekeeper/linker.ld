@@ -3,7 +3,6 @@ MEMORY {
     RAM (xrw) : ORIGIN = 0x10000000, LENGTH = 8K
 }
 
-__stack = __stack_end__;  /* For Newlib's init code */
 __checksum__ = 0 - (__stack_end__ + (reset_handler + 1) + (nmi_handler + 1) + (hard_fault_handler + 1));
 
 ENTRY(reset_handler)

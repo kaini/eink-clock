@@ -1,8 +1,8 @@
 {
     "linker": "arm-none-eabi-gcc",
     "linker-is-gnu": true,
-    "pre-link-args": ["-nostartfiles", "-nodefaultlibs", "-nostdlib", "-mthumb", "-mcpu=cortex-m0", "-Tlinker.ld"],
-    "post-link-args": ["-lgcc"],
+    "pre-link-args": ["-nostartfiles", "-nodefaultlibs", "-nostdlib", "-mthumb", "-mcpu=cortex-m0", "-mfloat-abi=soft", "-Tlinker.ld"],
+    "post-link-args": ["-lm", "-lgcc"],
     "executables": true,
     "panic-strategy": "abort",
     "relocation-model": "static",
