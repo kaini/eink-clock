@@ -153,7 +153,7 @@ impl Graphic {
         let mut prev_char = 0;
         for c in text.chars() {
             if let Ok(index) = font.chars.binary_search_by_key(&(c as u32), |ref chr| chr.chr) {
-                let kerning = if let Ok(index) = font.kerning_pairs.binary_search_by_key(&(prev_char, c as u32), |ref k| k.pair) {
+                x_at += if let Ok(index) = font.kerning_pairs.binary_search_by_key(&(prev_char, c as u32), |ref k| k.pair) {
                     font.kerning_pairs[index].amount as i32
                 } else {
                     0
@@ -161,7 +161,7 @@ impl Graphic {
                 let ref chr = font.chars[index];
                 self.add_image(
                     font.texture, chr.x as i32, chr.y as i32, font.texture_w, font.texture_h,
-                    x_at + chr.xoffset as i32 + kerning, y + chr.yoffset as i32, chr.width as i32, chr.height as i32);
+                    x_at + chr.xoffset as i32, y + chr.yoffset as i32, chr.width as i32, chr.height as i32);
                 x_at += chr.xadvance as i32;
                 prev_char = chr.chr;
             }
