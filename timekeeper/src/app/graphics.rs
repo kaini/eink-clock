@@ -2,21 +2,8 @@ use collections::vec::Vec;
 use alloc::boxed::Box;
 use devices::flash::Font;
 use core::cmp::{min, max};
-use core::mem::transmute;
 
 const GRID_SIZE: usize = 256;
-
-/// https://en.wikipedia.org/wiki/Fast_inverse_square_root
-fn rsqrt(number: f32) -> f32 {
-    let x2 = number * 0.5;
-    let mut y = number;
-    let mut i = unsafe { transmute::<f32, i32>(y) };
-    i = 0x5f3759df - (i >> 1);
-    y = unsafe { transmute::<i32, f32>(i) };
-    y = y * (1.5 - (x2 * y * y));
-    y = y * (1.5 - (x2 * y * y));
-    y
-}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Color {
@@ -34,7 +21,6 @@ struct Image {
     source_x: i32,
     source_y: i32,
     source_width: i32,
-    source_height: i32,
     dest_x: i32,
     dest_y: i32,
     width: i32,
@@ -183,14 +169,13 @@ impl Graphic {
     }
 
     pub fn add_image(&mut self,
-            source: &'static [u8], source_x: i32, source_y: i32, source_width: i32, source_height: i32,
+            source: &'static [u8], source_x: i32, source_y: i32, source_width: i32, _source_height: i32,
             dest_x: i32, dest_y: i32, width: i32, height: i32) {
         self.add_element(Box::new(Image {
             source: source,
             source_x: source_x,
             source_y: source_y,
             source_width: source_width,
-            source_height: source_height,
             dest_x: dest_x,
             dest_y: dest_y,
             width: width,

@@ -1,7 +1,5 @@
 use rawhw::syscon;
 use rawhw::counter::ct16b1;
-use core::sync::atomic::{fence, Ordering};
-use core::ops::{Deref, DerefMut};
 use core::ptr::{write_volatile, read_volatile};
 
 pub unsafe fn init() {
@@ -49,7 +47,7 @@ impl IsrFlag {
     pub unsafe fn wait(&'static mut self) {
         let mut current_flag = false;
         while !current_flag {
-            let mut primask: u32;
+            let primask: u32;
             asm!(
                 "mrs $0, primask; cpsid i;"
                 : "=r"(primask)  // Outputs
