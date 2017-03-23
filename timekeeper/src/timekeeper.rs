@@ -6,6 +6,7 @@
 #![feature(asm)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
+#![feature(vec_remove_item)]
 #![allow(dead_code)]
 #![cfg_attr(not(test), no_builtins)]
 
@@ -71,20 +72,16 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
             let hour_x = 300 + round(-cos(hour_angle) * 200.0) as i32;
             let hour_y = 300 + round(sin(hour_angle) * 200.0) as i32;
             graphic.add_line(300, 300, hour_x, hour_y, 30);
+            graphic.finish();
 
             let eink_start_time = clock::current_time();
-            eink::render(clear, |scanline, buffer| {
-                let x = eink::SCANLINES - scanline - 1;
-                for y in 0..(eink::SCANLINE_WIDTH / 8) {
-                    buffer[y as usize] =
-                            ((if graphic.render_pixel(x, y * 8 + 0) == Color::BLACK { 1 } else { 0 }) << 0) |
-                            ((if graphic.render_pixel(x, y * 8 + 1) == Color::BLACK { 1 } else { 0 }) << 1) |
-                            ((if graphic.render_pixel(x, y * 8 + 2) == Color::BLACK { 1 } else { 0 }) << 2) |
-                            ((if graphic.render_pixel(x, y * 8 + 3) == Color::BLACK { 1 } else { 0 }) << 3) |
-                            ((if graphic.render_pixel(x, y * 8 + 4) == Color::BLACK { 1 } else { 0 }) << 4) |
-                            ((if graphic.render_pixel(x, y * 8 + 5) == Color::BLACK { 1 } else { 0 }) << 5) |
-                            ((if graphic.render_pixel(x, y * 8 + 6) == Color::BLACK { 1 } else { 0 }) << 6) |
-                            ((if graphic.render_pixel(x, y * 8 + 7) == Color::BLACK { 1 } else { 0 }) << 7);
+            eink::render(clear, |_scanline, buffer| {
+                for y in 0..(eink::SCANLINE_WIDTH as usize / 8) {
+                    let mut result = 0;
+                    for p in 0..8 {
+                        result |= if graphic.render_pixel() == Color::BLACK { 1 } else { 0 } << p;
+                    }
+                    buffer[y] = result;
                 }
             });
             clear = false;
@@ -97,8 +94,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 /// Receives the time and returns the new zero time.
 fn adjust_time() -> Datetime {
     // For quick testing
-    //clock::offset_time(-clock::current_time());
-    //return Datetime::new(2000, 1, 1, 12, 30, 0, 3600).unwrap();
+    //lock::offset_time(-clock::current_time());
+    //return Datetime::new(2000, 1, 1, 15, 37, 0, 3600).unwrap();
 
     eink::render(true, |_scanline, buffer| {
         for b in buffer.iter_mut() {
@@ -277,6 +274,12 @@ pub unsafe extern fn __aeabi_memclr(dest: *mut u8, n: usize) {
 #[no_mangle]
 pub unsafe extern fn __aeabi_memclr4(dest: *mut u8, n: usize) {
     rlibc::memset(dest, 0, n);
+}
+
+#[cfg(not(test))]
+#[no_mangle]
+pub unsafe extern fn __aeabi_memmove4(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    rlibc::memmove(dest, src, n)
 }
 
 fn sin(f: f32) -> f32 {

@@ -3,8 +3,6 @@ use alloc::boxed::Box;
 use devices::flash::Font;
 use core::cmp::{min, max};
 
-const GRID_SIZE: usize = 256;
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum Color {
     TRANSPARENT,
@@ -120,11 +118,24 @@ pub enum HorizontalAlign {
     RIGHT,
 }
 
+struct ElementEntry {
+    value: i32,
+    index: usize,
+}
+
 pub struct Graphic {
     elements: Vec<Box<Renderable>>,
     width: i32,
     height: i32,
-    grid: Vec<Vec<usize>>,
+
+    x_starts: Vec<ElementEntry>,
+    x_ends: Vec<ElementEntry>,
+    x_starts_at: usize,
+    x_ends_at: usize,
+    x_at: i32,
+    x_active: Vec<usize>,
+
+    y_at: i32,
 }
 
 impl Graphic {
@@ -133,7 +144,15 @@ impl Graphic {
             elements: Vec::new(),
             width: w,
             height: h,
-            grid: vec![Vec::new(); (w as usize / GRID_SIZE + 1) * (h as usize / GRID_SIZE + 1)],
+
+            x_starts: Vec::new(),
+            x_ends: Vec::new(),
+            x_starts_at: 0,
+            x_ends_at: 0,
+            x_at: w - 1,
+            x_active: Vec::new(),
+
+            y_at: 0,
         }
     }
 
@@ -206,19 +225,6 @@ impl Graphic {
         }));
     }
 
-    fn xy_to_grid_xy(&self, x: i32, y: i32) -> (usize, usize) {
-        ((x as usize / GRID_SIZE), (y as usize / GRID_SIZE))
-    }
-
-    fn grid_xy_to_grid_index(&self, gx: usize, gy: usize) -> usize {
-        gy * (self.width as usize / GRID_SIZE) + gx
-    }
-
-    fn xy_to_grid_index(&self, x: i32, y: i32) -> usize {
-        let (gx, gy) = self.xy_to_grid_xy(x, y);
-        self.grid_xy_to_grid_index(gx, gy)
-    }
-
     fn add_element(&mut self, renderable: Box<Renderable>) {
         let index = self.elements.len();
         
@@ -242,25 +248,43 @@ impl Graphic {
             return;
         }
 
-        let (gx0, gy0) = self.xy_to_grid_xy(bx, by);
-        let (gx1, gy1) = self.xy_to_grid_xy(bx + bw - 1, by + bh - 1);
-        for gx in gx0..(gx1 + 1) {
-            for gy in gy0..(gy1 + 1) {
-                let grid_index = self.grid_xy_to_grid_index(gx, gy);
-                self.grid[grid_index].push(index);
-            }
-        }
-
+        self.x_starts.push(ElementEntry { value: bx + bw - 1, index: index });
+        self.x_ends.push(ElementEntry { value: bx - 1, index: index });
         self.elements.push(renderable);
     }
 
-    pub fn render_pixel(&self, x: i32, y: i32) -> Color {
-        let index = self.xy_to_grid_index(x, y);
-        for &element_index in &self.grid[index] {
-            if self.elements[element_index].render_pixel(x, y) == Color::BLACK {
-                return Color::BLACK;
+    pub fn finish(&mut self) {
+        self.x_starts.sort_by_key(|e| -e.value);
+        self.x_ends.sort_by_key(|e| -e.value);
+    }
+
+    // Returns the pixels from right to left from top to bottom.
+    pub fn render_pixel(&mut self) -> Color {
+        if self.y_at == 0 {
+            while self.x_starts_at < self.x_starts.len() && self.x_starts[self.x_starts_at].value == self.x_at {
+                self.x_active.push(self.x_starts[self.x_starts_at].index);
+                self.x_starts_at += 1;
+            }
+            while self.x_ends_at < self.x_ends.len() && self.x_ends[self.x_ends_at].value == self.x_at {
+                self.x_active.remove_item(&self.x_ends[self.x_ends_at].index);
+                self.x_ends_at += 1;
             }
         }
-        Color::TRANSPARENT
+
+        let mut result = Color::TRANSPARENT;
+        for &element_index in &self.x_active {
+            if self.elements[element_index].render_pixel(self.x_at, self.y_at) == Color::BLACK {
+                result = Color::BLACK;
+                break;
+            }
+        }
+
+        self.y_at += 1;
+        if self.y_at == self.height {
+            self.x_at -= 1;
+            self.y_at = 0;
+        }
+
+        result
     }
 }
