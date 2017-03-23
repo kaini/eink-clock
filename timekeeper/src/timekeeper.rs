@@ -94,7 +94,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 /// Receives the time and returns the new zero time.
 fn adjust_time() -> Datetime {
     // For quick testing
-    //lock::offset_time(-clock::current_time());
+    //clock::offset_time(-clock::current_time());
     //return Datetime::new(2000, 1, 1, 15, 37, 0, 3600).unwrap();
 
     eink::render(true, |_scanline, buffer| {
