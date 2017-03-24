@@ -1,9 +1,11 @@
-use rawhw::{rtc, syscon};
+use rawhw::{rtc, syscon, nvic};
 
 pub unsafe fn init() {
     syscon::syscfg::rtcclk::set(syscon::RtcClock::OneKHz);
     rtc::cr::rtcstart::set(true);
     wait_for_ready();
+    rtc::icsc::rtcic::set(true);
+    nvic::iser::set(1 << nvic::RTC);
 }
 
 fn wait_for_ready() {
@@ -29,4 +31,14 @@ pub fn offset_time(offset: i32) {
     unsafe {
         rtc::lr::set((current_time() + offset) as u32);
     }
+}
+
+pub fn set_interrupt_time(time: i32) {
+    unsafe {
+        rtc::mr::set(time as u32);
+    }
+}
+
+pub unsafe extern fn rtc_interrupt() {
+    rtc::icr::rtcicr::set(true);
 }

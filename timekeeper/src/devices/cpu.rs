@@ -1,8 +1,11 @@
-use rawhw::syscon;
+use rawhw::{syscon, nvic};
 use rawhw::counter::ct16b1;
 use core::ptr::{write_volatile, read_volatile};
 
 pub unsafe fn init() {
+    // Clear the deep power down flag
+    syscon::pcon::dpdflag::set_fullreg_zero_this_one();
+
     // See Section 4.10.4.1 on how to calculate these values.
     // The chosen values result in a PLL output clock of 36 MHz.
     syscon::syspllctrl::msel::set(2);
@@ -30,6 +33,40 @@ pub fn usleep(us: u16) {
         while ct16b1::tc::tc::get() < us { }
         ct16b1::tcr::cen::set(false);
     }
+}
+
+pub fn get_data(index: usize) -> u32 {
+    unsafe {
+        match index {
+            0 => syscon::gpdata0::get(),
+            1 => syscon::gpdata1::get(),
+            2 => syscon::gpdata2::get(),
+            3 => syscon::gpdata3::get(),
+            _ => panic!("Index out of bounds")
+        }
+    }
+}
+
+#[cfg(not(test))]
+pub fn deep_power_down(data: &[u32]) -> ! {
+    assert!(data.len() <= 4);
+    unsafe {
+        syscon::pcon::dpden::set(true);
+        if data.len() >= 1 { syscon::gpdata0::set(data[0]); }
+        if data.len() >= 2 { syscon::gpdata1::set(data[1]); }
+        if data.len() >= 3 { syscon::gpdata2::set(data[2]); }
+        if data.len() >= 4 { syscon::gpdata3::set(data[3]); }
+        nvic::scr::sleepdeep::set(true);
+        syscon::pdruncfg::ircout_pd::set(false);
+        syscon::pdruncfg::irc_pd::set(false);
+        asm!("wfi" :::: "volatile");
+    }
+    unreachable!();
+}
+
+#[cfg(test)]
+pub fn deep_power_down(data: &[u32]) -> ! {
+    unimplemented!();
 }
 
 pub struct IsrFlag {

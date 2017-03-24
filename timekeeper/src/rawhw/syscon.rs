@@ -97,4 +97,13 @@ register_block! {
         10, wakeuphys, bool;
         11,14, rtcclk, RtcClock;
     }
+    pcon 0x40038000 => {
+        1, dpden, bool;
+        8, sleepflag, bool;
+        11, dpdflag, bool;
+    }
+    gpdata0 0x40038004 => { full; }
+    gpdata1 0x40038008 => { full; }
+    gpdata2 0x4003800C => { full; }
+    gpdata3 0x40038010 => { full; }
 }

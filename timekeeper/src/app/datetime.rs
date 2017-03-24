@@ -186,6 +186,27 @@ impl Datetime {
         (y + y / 4 - y / 100 + y / 400 + T[self.month as usize - 1] + self.day) % 7
     }
 
+    pub fn to_bits(&self) -> u64 {
+          (self.year - 2000) as u64
+        | ((self.month as u64) << 7)
+        | ((self.day as u64) << 11)
+        | ((self.hour as u64) << 16)
+        | ((self.minute as u64) << 21)
+        | ((self.second as u64) << 27)
+        | ((self.timezone as u64) << 33)
+    }
+
+    pub fn from_bits(bits: u64) -> Result<Datetime, &'static str> {
+        Datetime::new(
+            (bits & 0b1111111) as i32 + 2000,
+            ((bits >> 7) & 0b1111) as i32,
+            ((bits >> 11) & 0b11111) as i32,
+            ((bits >> 16) & 0b11111) as i32,
+            ((bits >> 21) & 0b111111) as i32,
+            ((bits >> 27) & 0b111111) as i32,
+            (bits >> 33) as i32)
+    }
+
     fn fix_second_overflow(&mut self) {
         self.minute += floor_div(self.second, 60);
         self.second = modulo(self.second, 60);
@@ -452,5 +473,12 @@ mod test {
         assert_eq!(Datetime::new(2012, 12, 30, 1, 2, 3, 3600).unwrap().weekday(), 0);
         assert_eq!(Datetime::new(2013, 1, 1, 7, 25, 30, 3600).unwrap().weekday(), 2);
         assert_eq!(Datetime::new(2012, 12, 29, 14, 59, 59, 3600).unwrap().weekday(), 6);
+    }
+
+    #[test]
+    fn test_bits() {
+        let a = Datetime::new(2012, 12, 30, 1, 2, 3, 3600).unwrap();
+        assert_eq!(a, Datetime::from_bits(a.to_bits()).unwrap());
+        assert!(Datetime::from_bits(0).is_err());
     }
 }
