@@ -27,6 +27,7 @@ mod app;
 use devices::{cpu, eink, flash, dcf77, clock};
 use app::datetime::Datetime;
 use app::graphics::{Graphic, HorizontalAlign, Color};
+use app::eutime::central_localtime;
 use core::ptr;
 use core::f32::consts::PI;
 use core::intrinsics::{sinf32, cosf32, roundf32};
@@ -36,59 +37,60 @@ const WEEKDAYS: [&str; 7] = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    let mut zero_time = adjust_time();
-    let mut clear = true;
-    let mut last_repaint_minute = -1;
+    let zero_time = if let Ok(zt) = Datetime::from_bits(cpu::get_data(0) as u64 | ((cpu::get_data(1) as u64) << 32)) {
+        zt
+    } else {
+        adjust_time()
+    };
+    let now_ms = clock::current_time();
+    let now = { let mut now = zero_time.clone(); now.offset_seconds(now_ms / 1000); central_localtime(&now) };
 
-    loop {
-        let now_ms = clock::current_time();
-        let now = { let mut now = zero_time.clone(); now.offset_seconds(now_ms / 1000); now };
+    let status_line = format!("RTC: {}    LAST SYNC: {}.{}.{} {:02}:{:02}",
+        now_ms,
+        zero_time.day(), zero_time.month(), zero_time.year(),
+        zero_time.hour(), zero_time.minute());
 
-        if now_ms > RESYNC_TIME {
-            zero_time = adjust_time();
+    let mut graphic = Graphic::new(600, 800);
+    graphic.add_image(
+        flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
+        0, 0, flash::CLOCK_W, flash::CLOCK_H);
+    graphic.add_text(&status_line, &flash::SMALL_FONT, 597, 775, HorizontalAlign::RIGHT);
+    graphic.add_text(
+        &format!("{} {}.{}.", WEEKDAYS[now.weekday() as usize], now.day(), now.month()),
+        &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
+    let minute_angle = -PI / 30.0 * now.minute() as f32 - PI / 2.0;
+    let minute_x = 300 + round(-cos(minute_angle) * 280.0) as i32;
+    let minute_y = 300 + round(sin(minute_angle) * 280.0) as i32;
+    graphic.add_line(300, 300, minute_x, minute_y, 20);
+    let hour_angle = -PI / 360.0 * ((now.hour() % 12) * 60 + now.minute()) as f32 - PI / 2.0;
+    let hour_x = 300 + round(-cos(hour_angle) * 200.0) as i32;
+    let hour_y = 300 + round(sin(hour_angle) * 200.0) as i32;
+    graphic.add_line(300, 300, hour_x, hour_y, 30);
+    graphic.finish();
+
+    let eink_start_time = clock::current_time();
+    eink::render(false, |_scanline, buffer| {
+        for y in 0..(eink::SCANLINE_WIDTH as usize / 8) {
+            let mut result = 0;
+            for p in 0..8 {
+                result |= if graphic.render_pixel() == Color::BLACK { 1 } else { 0 } << p;
+            }
+            buffer[y] = result;
         }
+    });
+    let eink_end_time = clock::current_time();
+    debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);
 
-        if now.minute() != last_repaint_minute  {
-            last_repaint_minute = now.minute();
-
-            let status_line = format!("RTC: {}    LAST SYNC: {}.{}.{} {:02}:{:02}",
-                now_ms,
-                zero_time.day(), zero_time.month(), zero_time.year(),
-                zero_time.hour(), zero_time.minute());
-
-            let mut graphic = Graphic::new(600, 800);
-            graphic.add_image(
-                flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
-                0, 0, flash::CLOCK_W, flash::CLOCK_H);
-            graphic.add_text(&status_line, &flash::SMALL_FONT, 597, 775, HorizontalAlign::RIGHT);
-            graphic.add_text(
-                &format!("{} {}.{}.", WEEKDAYS[now.weekday() as usize], now.day(), now.month()),
-                &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
-            let minute_angle = -PI / 30.0 * now.minute() as f32 - PI / 2.0;
-            let minute_x = 300 + round(-cos(minute_angle) * 280.0) as i32;
-            let minute_y = 300 + round(sin(minute_angle) * 280.0) as i32;
-            graphic.add_line(300, 300, minute_x, minute_y, 20);
-            let hour_angle = -PI / 360.0 * ((now.hour() % 12) * 60 + now.minute()) as f32 - PI / 2.0;
-            let hour_x = 300 + round(-cos(hour_angle) * 200.0) as i32;
-            let hour_y = 300 + round(sin(hour_angle) * 200.0) as i32;
-            graphic.add_line(300, 300, hour_x, hour_y, 30);
-            graphic.finish();
-
-            let eink_start_time = clock::current_time();
-            eink::render(clear, |_scanline, buffer| {
-                for y in 0..(eink::SCANLINE_WIDTH as usize / 8) {
-                    let mut result = 0;
-                    for p in 0..8 {
-                        result |= if graphic.render_pixel() == Color::BLACK { 1 } else { 0 } << p;
-                    }
-                    buffer[y] = result;
-                }
-            });
-            clear = false;
-            let eink_end_time = clock::current_time();
-            debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);
-        }
-    }
+    clock::set_interrupt_time(((now_ms / 60000) + 1) * 60000);
+    let now_serialized = if now_ms > RESYNC_TIME && now.hour() == 4 {
+        0
+    } else {
+        zero_time.to_bits()
+    };
+    cpu::deep_power_down(&[
+        (now_serialized & 0xFFFFFFFF) as u32,
+        (now_serialized >> 32) as u32,
+    ]);
 }
 
 /// Receives the time and returns the new zero time.
@@ -175,7 +177,7 @@ pub static ISR_VECTORS: [Option<unsafe extern fn()>; 47] = [
     Some(default_handler),  // PIO INT2
     None,  // Reserved
     Some(default_handler),  // DMA
-    Some(default_handler),  // RTC
+    Some(devices::clock::rtc_interrupt),  // RTC
 ];
 
 #[cfg(not(test))]
