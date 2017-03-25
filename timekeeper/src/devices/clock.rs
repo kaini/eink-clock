@@ -1,7 +1,7 @@
 use rawhw::{rtc, syscon, nvic};
 
 pub unsafe fn init() {
-    syscon::syscfg::rtcclk::set(syscon::RtcClock::OneKHz);
+    syscon::syscfg::rtcclk::set(syscon::RtcClock::OneHz);
     rtc::cr::rtcstart::set(true);
     wait_for_ready();
     rtc::icsc::rtcic::set(true);
@@ -27,9 +27,9 @@ pub fn current_time() -> i32 {
     }
 }
 
-pub fn offset_time(offset: i32) {
+pub fn reset_time() {
     unsafe {
-        rtc::lr::set((current_time() + offset) as u32);
+        rtc::lr::set(0);
     }
 }
 

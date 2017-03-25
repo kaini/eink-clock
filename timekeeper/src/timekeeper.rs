@@ -32,7 +32,7 @@ use core::ptr;
 use core::f32::consts::PI;
 use core::intrinsics::{sinf32, cosf32, roundf32};
 
-const RESYNC_TIME: i32 = 7 * 24 * 60 * 60 * 1000;  // 7 days
+const RESYNC_TIME: i32 = 7 * 24 * 60 * 60;  // 7 days
 const WEEKDAYS: [&str; 7] = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
 
 #[start]
@@ -42,11 +42,11 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     } else {
         adjust_time()
     };
-    let now_ms = clock::current_time();
-    let now = { let mut now = zero_time.clone(); now.offset_seconds(now_ms / 1000); central_localtime(&now) };
+    let now_s = clock::current_time();
+    let now = { let mut now = zero_time.clone(); now.offset_seconds(now_s); central_localtime(&now) };
 
     let status_line = format!("RTC: {}    LAST SYNC: {}.{}.{} {:02}:{:02}",
-        now_ms,
+        now_s,
         zero_time.day(), zero_time.month(), zero_time.year(),
         zero_time.hour(), zero_time.minute());
 
@@ -81,8 +81,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let eink_end_time = clock::current_time();
     debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);
 
-    clock::set_interrupt_time(((now_ms / 60000) + 1) * 60000);
-    let now_serialized = if now_ms > RESYNC_TIME && now.hour() == 4 {
+    clock::set_interrupt_time(((now_s / 60) + 1) * 60);
+    let now_serialized = if now_s > RESYNC_TIME && now.hour() == 4 {
         0
     } else {
         zero_time.to_bits()
@@ -96,7 +96,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 /// Receives the time and returns the new zero time.
 fn adjust_time() -> Datetime {
     // For quick testing
-    //clock::offset_time(-clock::current_time());
+    //clock::reset_time();
     //return Datetime::new(2000, 1, 1, 15, 37, 0, 3600).unwrap();
 
     eink::render(true, |_scanline, buffer| {
@@ -107,10 +107,9 @@ fn adjust_time() -> Datetime {
 
     loop {
         let payload = dcf77::receive();
-        let time = clock::current_time();
         match Datetime::from_dcf77(&payload) {
             Ok(new_zero_time) => {
-                clock::offset_time(-time);
+                clock::reset_time();
                 return new_zero_time;
             },
             Err(error) => {
