@@ -1,6 +1,7 @@
 timekeeper/target
 timekeeper/.cargo
 
+kicad/*.bak
+
 .vscode
-*bak
 
