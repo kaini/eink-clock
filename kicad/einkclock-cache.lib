@@ -26,8 +26,8 @@ ENDDEF
 DEF Battery BT 0 0 N N 1 F N
 F0 "BT" 100 100 50 H V L CNN
 F1 "Battery" 100 0 50 H V L CNN
-F2 "" 0 60 50 V I C CNN
-F3 "" 0 60 50 V I C CNN
+F2 "" 0 60 50 V V C CNN
+F3 "" 0 60 50 V V C CNN
 DRAW
 S -80 -55 80 -65 0 1 0 F
 S -80 70 80 60 0 1 0 F
@@ -51,10 +51,14 @@ ENDDEF
 DEF C C 0 10 N Y 1 F N
 F0 "C" 25 100 50 H V L CNN
 F1 "C" 25 -100 50 H V L CNN
-F2 "" 38 -150 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 38 -150 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 $FPLIST
- C_*
+ C?
+ C_????_*
+ C_????
+ SMD*_c
+ Capacitor*
 $ENDFPLIST
 DRAW
 P 2 0 1 20 -80 -30 80 -30 N
@@ -66,17 +70,16 @@ ENDDEF
 #
 # CONN_02X05
 #
-DEF CONN_02X05 J 0 1 Y N 1 F N
-F0 "J" 0 300 50 H V C CNN
+DEF CONN_02X05 P 0 1 Y N 1 F N
+F0 "P" 0 300 50 H V C CNN
 F1 "CONN_02X05" 0 -300 50 H V C CNN
-F2 "" 0 -1200 50 H I C CNN
-F3 "" 0 -1200 50 H I C CNN
+F2 "" 0 -1200 50 H V C CNN
+F3 "" 0 -1200 50 H V C CNN
 $FPLIST
- Pin_Header_Straight_2X*
- Pin_Header_Angled_2X*
- Socket_Strip_Straight_2X*
- Socket_Strip_Angled_2X*
- IDC_Header_Straight_*
+ Pin_Header_Straight_2X05
+ Pin_Header_Angled_2X05
+ Socket_Strip_Straight_2X05
+ Socket_Strip_Angled_2X05
 $ENDFPLIST
 DRAW
 S -100 -195 -50 -205 0 1 0 N
@@ -108,10 +111,16 @@ ENDDEF
 DEF CP C 0 10 N Y 1 F N
 F0 "C" 25 100 50 H V L CNN
 F1 "CP" 25 -100 50 H V L CNN
-F2 "" 38 -150 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 38 -150 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 $FPLIST
- CP_*
+ CP*
+ C_Axial*
+ C_Radial*
+ TantalC*
+ C*elec
+ c_elec*
+ SMD*_Pol
 $ENDFPLIST
 DRAW
 S -90 20 -90 40 0 1 0 N
@@ -131,8 +140,8 @@ ENDDEF
 DEF Crystal Y 0 40 N N 1 F N
 F0 "Y" 0 150 50 H V C CNN
 F1 "Crystal" 0 -150 50 H V C CNN
-F2 "" 0 0 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 0 0 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 $FPLIST
  Crystal*
 $ENDFPLIST
@@ -168,10 +177,11 @@ ENDDEF
 DEF D_Schottky D 0 40 N N 1 F N
 F0 "D" 0 100 50 H V C CNN
 F1 "D_Schottky" 0 -100 50 H V C CNN
-F2 "" 0 0 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 0 0 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 $FPLIST
- TO-???*
+ Diode_*
+ D-*
  *SingleDiode
  *_Diode_*
  *SingleDiode*
@@ -237,8 +247,8 @@ ENDDEF
 DEF GND #PWR 0 0 Y Y 1 F P
 F0 "#PWR" 0 -250 50 H I C CNN
 F1 "GND" 0 -150 50 H V C CNN
-F2 "" 0 0 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 0 0 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 DRAW
 P 6 0 1 0 0 0 0 -50 50 -50 0 -100 -50 -50 0 -50 N
 X GND 1 0 0 0 D 50 50 1 1 W N
@@ -250,13 +260,11 @@ ENDDEF
 DEF L L 0 40 N N 1 F N
 F0 "L" -50 0 50 V V C CNN
 F1 "L" 75 0 50 V V C CNN
-F2 "" 0 0 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 0 0 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 $FPLIST
  Choke_*
  *Coil*
- Inductor_*
- L_*
 $ENDFPLIST
 DRAW
 A 0 -75 25 -899 899 0 1 0 N 0 -100 0 -50
@@ -350,8 +358,8 @@ ENDDEF
 DEF POT RV 0 40 N N 1 F N
 F0 "RV" -175 0 50 V V C CNN
 F1 "POT" -100 0 50 V V C CNN
-F2 "" 0 0 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 0 0 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 DRAW
 S 40 100 -40 -100 0 1 10 N
 P 2 0 1 0 100 0 60 0 N
@@ -367,8 +375,8 @@ ENDDEF
 DEF Q_NMOS_GSD Q 0 0 Y N 1 F N
 F0 "Q" 200 50 50 H V L CNN
 F1 "Q_NMOS_GSD" 200 -50 50 H V L CNN
-F2 "" 200 100 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 200 100 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 DRAW
 C 65 0 111 0 1 10 N
 C 100 -70 11 0 1 0 F
@@ -398,8 +406,8 @@ ENDDEF
 DEF Q_PMOS_GSD Q 0 0 Y N 1 F N
 F0 "Q" 200 50 50 H V L CNN
 F1 "Q_PMOS_GSD" 200 -50 50 H V L CNN
-F2 "" 200 100 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 200 100 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 DRAW
 C 65 0 111 0 1 10 N
 C 100 -70 11 0 1 0 F
@@ -429,11 +437,11 @@ ENDDEF
 DEF R R 0 0 N Y 1 F N
 F0 "R" 80 0 50 V V C CNN
 F1 "R" 0 0 50 V V C CNN
-F2 "" -70 0 50 V I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" -70 0 50 V V C CNN
+F3 "" 0 0 50 H V C CNN
 $FPLIST
  R_*
- R_*
+ Resistor_*
 $ENDFPLIST
 DRAW
 S -40 -100 40 100 0 1 10 N
@@ -485,8 +493,8 @@ ENDDEF
 DEF TS881 U 0 20 Y Y 1 F N
 F0 "U" 0 250 50 H V L CNN
 F1 "TS881" 0 150 50 H V L CNN
-F2 "" 0 0 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
+F2 "" 0 0 50 H V C CNN
+F3 "" 0 0 50 H V C CNN
 $FPLIST
  SOT-23*
  SC-70*
