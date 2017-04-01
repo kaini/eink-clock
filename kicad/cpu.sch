@@ -69,7 +69,7 @@ U 1 1 58DEBAD4
 P 6700 3750
 F 0 "C6" H 6725 3850 50  0000 L CNN
 F 1 "100n" H 6725 3650 50  0000 L CNN
-F 2 "Capacitors_SMD:C_0805_HandSoldering" H 6738 3600 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 6738 3600 50  0001 C CNN
 F 3 "" H 6700 3750 50  0000 C CNN
 	1    6700 3750
 	1    0    0    -1  
@@ -80,7 +80,7 @@ U 1 1 58DEBADB
 P 6950 3750
 F 0 "C7" H 6975 3850 50  0000 L CNN
 F 1 "100n" H 6975 3650 50  0000 L CNN
-F 2 "Capacitors_SMD:C_0805_HandSoldering" H 6988 3600 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 6988 3600 50  0001 C CNN
 F 3 "" H 6950 3750 50  0000 C CNN
 	1    6950 3750
 	1    0    0    -1  
@@ -105,7 +105,7 @@ F 1 "32.768k 12.5p" H 6750 4150 50  0000 C CNN
 F 2 "einkclock:Crystal_Lying_1" H 6750 4300 50  0001 C CNN
 F 3 "" H 6750 4300 50  0000 C CNN
 	1    6750 4300
-	1    0    0    -1  
+	-1   0    0    -1  
 $EndComp
 $Comp
 L C C5
@@ -113,7 +113,7 @@ U 1 1 58DEBAF5
 P 6450 4700
 F 0 "C5" H 6475 4800 50  0000 L CNN
 F 1 "22p" H 6475 4600 50  0000 L CNN
-F 2 "Capacitors_SMD:C_0805_HandSoldering" H 6488 4550 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 6488 4550 50  0001 C CNN
 F 3 "" H 6450 4700 50  0000 C CNN
 	1    6450 4700
 	1    0    0    -1  
@@ -124,7 +124,7 @@ U 1 1 58DEBAFC
 P 7050 4700
 F 0 "C8" H 7075 4800 50  0000 L CNN
 F 1 "22p" H 7075 4600 50  0000 L CNN
-F 2 "Capacitors_SMD:C_0805_HandSoldering" H 7088 4550 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7088 4550 50  0001 C CNN
 F 3 "" H 7050 4700 50  0000 C CNN
 	1    7050 4700
 	1    0    0    -1  
@@ -180,7 +180,7 @@ U 1 1 58DEBB24
 P 2250 4550
 F 0 "C1" H 2275 4650 50  0000 L CNN
 F 1 "100n" H 2275 4450 50  0000 L CNN
-F 2 "Capacitors_SMD:C_0805_HandSoldering" H 2288 4400 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 2288 4400 50  0001 C CNN
 F 3 "" H 2250 4550 50  0000 C CNN
 	1    2250 4550
 	-1   0    0    1   
@@ -191,7 +191,7 @@ U 1 1 58DEBB2B
 P 3550 3150
 F 0 "C3" H 3575 3250 50  0000 L CNN
 F 1 "100n" H 3575 3050 50  0000 L CNN
-F 2 "Capacitors_SMD:C_0805_HandSoldering" H 3588 3000 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 3588 3000 50  0001 C CNN
 F 3 "" H 3550 3150 50  0000 C CNN
 	1    3550 3150
 	-1   0    0    1   
@@ -345,7 +345,7 @@ U 1 1 58DEBBC8
 P 6450 3750
 F 0 "C4" H 6475 3850 50  0000 L CNN
 F 1 "4.7µ" H 6475 3650 50  0000 L CNN
-F 2 "Capacitors_SMD:C_0805_HandSoldering" H 6488 3600 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 6488 3600 50  0001 C CNN
 F 3 "" H 6450 3750 50  0000 C CNN
 	1    6450 3750
 	1    0    0    -1  
@@ -366,11 +366,11 @@ Text HLabel 4700 2100 0    60   Input ~ 0
 DD6
 Text HLabel 4700 2200 0    60   Input ~ 0
 DD7
-Text HLabel 4700 2400 0    60   Input ~ 0
+Text HLabel 4700 3700 0    60   Input ~ 0
 DCL
-Text HLabel 4700 2500 0    60   Input ~ 0
+Text HLabel 4700 3800 0    60   Input ~ 0
 DLE
-Text HLabel 4700 2600 0    60   Input ~ 0
+Text HLabel 4700 3900 0    60   Input ~ 0
 DOE
 Text HLabel 4700 2700 0    60   Input ~ 0
 TSIG
@@ -378,21 +378,21 @@ Text HLabel 2150 4300 0    60   Input ~ 0
 +3.3V
 Text HLabel 7150 4000 2    60   Input ~ 0
 +3.3V
-Text HLabel 4700 3900 0    60   Input ~ 0
+Text HLabel 4700 2400 0    60   Input ~ 0
 DGMODE
-Text HLabel 4700 4000 0    60   Input ~ 0
+Text HLabel 4700 2500 0    60   Input ~ 0
 DSPV
-Text HLabel 4700 3700 0    60   Input ~ 0
+Text HLabel 4700 2600 0    60   Input ~ 0
 DCKV
-Text HLabel 4700 3800 0    60   Input ~ 0
+Text HLabel 4700 4000 0    60   Input ~ 0
 DSPH
 Text HLabel 4700 3500 0    60   Input ~ 0
 ONPOS
 Text HLabel 4700 3600 0    60   Input ~ 0
 ONNEG
-Text HLabel 4700 4600 0    60   Input ~ 0
-DON
 Text HLabel 4700 4700 0    60   Input ~ 0
+DON
+Text HLabel 4700 4600 0    60   Input ~ 0
 TON
 Wire Wire Line
 	3550 3400 3550 3300
@@ -517,7 +517,7 @@ U 1 1 58DE1215
 P 3250 1300
 F 0 "C2" H 3275 1400 50  0000 L CNN
 F 1 "100n" H 3275 1200 50  0000 L CNN
-F 2 "Capacitors_SMD:C_0805_HandSoldering" H 3288 1150 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 3288 1150 50  0001 C CNN
 F 3 "" H 3250 1300 50  0001 C CNN
 	1    3250 1300
 	1    0    0    -1  
