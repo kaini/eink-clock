@@ -25,9 +25,9 @@ for (value, manfno), refs in parts.items():
     rows.append([refs, value, len(refs) * mult, manfno])
 rows.sort(key=lambda row: row[0])
 for row in rows:
-    row[0] = ",".join(a + str(b) for a, b in row[0])
+    row[0] = " ".join(a + str(b) for a, b in row[0])
 
-with open(sys.argv[2], "w", newline="") as csvfile:
+with open(sys.argv[2], "w", encoding="utf-8", newline="") as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(("References", "Value", "Count*" + str(mult), "Manf#"))
     for row in rows:
