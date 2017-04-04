@@ -52,6 +52,7 @@ F 0 "BT1" H 1150 1750 50  0000 L CNN
 F 1 "6.4-4" H 1150 1650 50  0000 L CNN
 F 2 "Wire_Connections_Bridges:WireConnection_1.00mmDrill" V 1050 1710 50  0001 C CNN
 F 3 "" V 1050 1710 50  0000 C CNN
+F 4 "12BH142A-GR" H 1050 1650 60  0001 C CNN "Manf#"
 	1    1050 1650
 	1    0    0    -1  
 $EndComp
