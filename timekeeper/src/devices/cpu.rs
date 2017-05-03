@@ -2,7 +2,7 @@ use rawhw::syscon;
 use rawhw::counter::ct16b1;
 use core::ptr::{write_volatile, read_volatile};
 
-pub unsafe fn init() {
+pub unsafe fn early_init() {
     // Clear the deep power down flag
     syscon::pcon::dpdflag::set_fullreg_zero_this_one();
 

@@ -78,10 +78,13 @@ macro_rules! setup_output {
     });
 }
 
-pub unsafe fn init() {
+pub unsafe fn early_init() {
     setup_output!(onpos_ioconfig, onpos_gpio, ONPOS_BIT);
     setup_output!(onneg_ioconfig, onneg_gpio, ONNEG_BIT);
     setup_output!(don_ioconfig, don_gpio, DON_BIT);
+}
+
+pub unsafe fn init() {
     don_ioconfig::drv::set(true);
     setup_output!(dd0_ioconfig, dd_gpio, DD_SHIFT + 0);
     setup_output!(dd1_ioconfig, dd_gpio, DD_SHIFT + 1);

@@ -205,8 +205,9 @@ pub extern fn reset_handler() {
         ptr::write_volatile(0x40004008 as *mut u32, 0xAA);
         ptr::write_volatile(0x40004008 as *mut u32, 0x55);
 
-        // Init CPU
-        cpu::init();
+        // Early init of critical hardware
+        eink::early_init();
+        cpu::early_init();
 
         // Zero .bss
         let bss_size = (&__bss_end__ as *const u32 as usize) - (&__bss_start__ as *const u32 as usize);
@@ -217,8 +218,8 @@ pub extern fn reset_handler() {
         ptr::copy_nonoverlapping(&__data_source_start__, &mut __data_start__, data_size / 4);
 
         // Init other hardware & runtime
-        eink::init();
         my_allocator::init();
+        eink::init();
         dcf77::init();
         clock::init();
 
