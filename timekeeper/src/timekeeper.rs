@@ -69,7 +69,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     graphic.finish();
 
     let eink_start_time = clock::current_time();
-    eink::render(false, |_scanline, buffer| {
+    eink::render(|_scanline, buffer| {
         for y in 0..(eink::SCANLINE_WIDTH as usize / 8) {
             let mut result = 0;
             for p in 0..8 {
@@ -79,7 +79,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         }
     });
     let eink_end_time = clock::current_time();
-    debug!("E-Ink Time: {} ms", eink_end_time - eink_start_time);
+    debug!("E-Ink Time: {} s", eink_end_time - eink_start_time);
 
     clock::set_interrupt_time(((now_s / 60) + 1) * 60);
     let now_serialized = if now_s > RESYNC_TIME && now.hour() == 4 {
@@ -94,12 +94,9 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 }
 
 /// Receives the time and returns the new zero time.
+#[cfg(not(feature = "fake_time"))]
 fn adjust_time() -> Datetime {
-    // For quick testing
-    //clock::reset_time();
-    //return Datetime::new(2000, 1, 1, 15, 37, 0, 3600).unwrap();
-
-    eink::render(true, |_scanline, buffer| {
+    eink::render(|_scanline, buffer| {
         for b in buffer.iter_mut() {
             *b = 0;
         }
@@ -117,6 +114,18 @@ fn adjust_time() -> Datetime {
             }
         }
     }
+}
+
+#[cfg(feature = "fake_time")]
+fn adjust_time() -> Datetime {
+    eink::render(|_scanline, buffer| {
+        for b in buffer.iter_mut() {
+            *b = 0;
+        }
+    });
+
+    clock::reset_time();
+    return Datetime::new(2000, 1, 1, 15, 37, 0, 3600).unwrap();
 }
 
 #[cfg(not(test))]
