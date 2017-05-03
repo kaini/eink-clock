@@ -1,4 +1,4 @@
-[target.lpc1227-none-eabi-newlib.dependencies]
+[target.lpc1227-none-eabi.dependencies]
 core = {}
 collections = {}
 alloc = {}

@@ -1,4 +1,4 @@
-use rawhw::{syscon, nvic};
+use rawhw::syscon;
 use rawhw::counter::ct16b1;
 use core::ptr::{write_volatile, read_volatile};
 
@@ -47,8 +47,10 @@ pub fn get_data(index: usize) -> u32 {
     }
 }
 
-#[cfg(not(test))]
+#[cfg(all(not(test), not(feature = "stay_awake")))]
 pub fn deep_power_down(data: &[u32]) -> ! {
+    use rawhw::nvic;
+
     assert!(data.len() <= 4);
     unsafe {
         syscon::pcon::dpden::set(true);
@@ -64,9 +66,9 @@ pub fn deep_power_down(data: &[u32]) -> ! {
     unreachable!();
 }
 
-#[cfg(test)]
-pub fn deep_power_down(data: &[u32]) -> ! {
-    unimplemented!();
+#[cfg(any(test, feature = "stay_awake"))]
+pub fn deep_power_down(_data: &[u32]) -> ! {
+    panic!("cpu::deep_power_down called");
 }
 
 pub struct IsrFlag {

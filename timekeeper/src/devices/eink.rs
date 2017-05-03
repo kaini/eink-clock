@@ -13,8 +13,8 @@ const ONNEG_BIT: u32 = 19;
 
 // DON
 use rawhw::gpio::gpio0 as don_gpio;
-use rawhw::ioconfig::pio0_28 as don_ioconfig;
-const DON_BIT: u32 = 28;
+use rawhw::ioconfig::pio0_29 as don_ioconfig;
+const DON_BIT: u32 = 29;
 
 // DD
 use rawhw::gpio::gpio0 as dd_gpio;
@@ -30,37 +30,37 @@ const DD_SHIFT: u32 = 0;
 
 // DCL
 use rawhw::gpio::gpio0 as dcl_gpio;
-use rawhw::ioconfig::pio0_8 as dcl_ioconfig;
-const DCL_BIT: u32 = 8;
+use rawhw::ioconfig::pio0_20 as dcl_ioconfig;
+const DCL_BIT: u32 = 20;
 
 // DLE
 use rawhw::gpio::gpio0 as dle_gpio;
-use rawhw::ioconfig::pio0_9 as dle_ioconfig;
-const DLE_BIT: u32 = 9;
+use rawhw::ioconfig::pio0_21 as dle_ioconfig;
+const DLE_BIT: u32 = 21;
 
 // DOE
 use rawhw::gpio::gpio0 as doe_gpio;
-const DOE_BIT: u32 = 10;
+use rawhw::ioconfig::pio0_22 as doe_ioconfig;
+const DOE_BIT: u32 = 22;
 
 // DGMODE
 use rawhw::gpio::gpio0 as dgmode_gpio;
-use rawhw::ioconfig::pio0_14 as dgmode_ioconfig;
-const DGMODE_BIT: u32 = 14;
+use rawhw::ioconfig::pio0_8 as dgmode_ioconfig;
+const DGMODE_BIT: u32 = 8;
 
 // DSPV
 use rawhw::gpio::gpio0 as dspv_gpio;
-use rawhw::ioconfig::pio0_15 as dspv_ioconfig;
-const DSPV_BIT: u32 = 15;
+use rawhw::ioconfig::pio0_9 as dspv_ioconfig;
+const DSPV_BIT: u32 = 9;
 
 // DCKV
 use rawhw::gpio::gpio0 as dckv_gpio;
-use rawhw::ioconfig::pio0_16 as dckv_ioconfig;
-const DCKV_BIT: u32 = 16;
+const DCKV_BIT: u32 = 10;
 
 // DSPH
 use rawhw::gpio::gpio0 as dsph_gpio;
-use rawhw::ioconfig::pio0_17 as dsph_ioconfig;
-const DSPH_BIT: u32 = 17;
+use rawhw::ioconfig::pio0_23 as dsph_ioconfig;
+const DSPH_BIT: u32 = 23;
 
 const WHITE: u8 = 0b10;
 const BLACK: u8 = 0b01;
@@ -93,11 +93,12 @@ pub unsafe fn init() {
     setup_output!(dd7_ioconfig, dd_gpio, DD_SHIFT + 7);
     setup_output!(dcl_ioconfig, dcl_gpio, DCL_BIT);
     setup_output!(dle_ioconfig, dle_gpio, DLE_BIT);
-    doe_gpio::dir::set_bit(DOE_BIT);
-    doe_gpio::clr::set(1 << DOE_BIT);
+    setup_output!(doe_ioconfig, doe_gpio, DOE_BIT);
     setup_output!(dgmode_ioconfig, dgmode_gpio, DGMODE_BIT);
     setup_output!(dspv_ioconfig, dspv_gpio, DSPV_BIT);
-    setup_output!(dckv_ioconfig, dckv_gpio, DCKV_BIT);
+    // This pin does not have a pullup, therefore the setup_output code does not apply.
+    dckv_gpio::dir::set_bit(DCKV_BIT);
+    dckv_gpio::clr::set(1 << DCKV_BIT);
     setup_output!(dsph_ioconfig, dsph_gpio, DSPH_BIT);
 }
 
@@ -205,27 +206,11 @@ unsafe fn set_four_pixels(pixels: &[u8; 4]) {
     usleep(1);
 }
 
-unsafe fn clear() {
-    begin_frame();
-    for _ in 0..600 {
-        begin_line();
-        for _ in 0..200 {
-            set_four_pixels(&[WHITE; 4]);
-        }
-        end_line();
-    }
-    end_frame();
-}
-
-pub fn render<Draw>(clear: bool, mut draw: Draw)
+pub fn render<Draw>(mut draw: Draw)
         where Draw: FnMut(i32, &mut [u8; BUFFER_BYTES]) {
     unsafe {
         enable();
         draw_mode_on();
-
-        if clear {
-            self::clear();
-        }
 
         begin_frame();
         for scanline in 0..SCANLINES {

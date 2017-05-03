@@ -7,9 +7,9 @@ use collections::Vec;
 use rawhw::ioconfig::pio0_11 as signal_ioconfig;
 
 // Power pin. This is a high drive pin.
-use rawhw::ioconfig::pio0_29 as power_ioconfig;
+use rawhw::ioconfig::pio0_28 as power_ioconfig;
 use rawhw::gpio::gpio0 as power_gpio;
-const POWER_BIT: u32 = 29;
+const POWER_BIT: u32 = 28;
 
 // Counter.
 use rawhw::counter::ct16b0 as counter;

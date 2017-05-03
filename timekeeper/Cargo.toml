@@ -6,10 +6,13 @@ build = "build.rs"
 
 [profile.dev]
 opt-level = 3
-debug-assertions = false  # Disabled because of LLVM bug #00000.
+debug-assertions = false
+overflow-checks = false
 
 [features]
 semihosted = []
+fake_time = []
+stay_awake = []
 
 [lib]
 name = "timekeeper"

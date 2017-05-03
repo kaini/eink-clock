@@ -3,6 +3,8 @@ use rawhw::{rtc, syscon, nvic};
 pub unsafe fn init() {
     syscon::syscfg::rtcclk::set(syscon::RtcClock::OneHz);
     rtc::cr::rtcstart::set(true);
+    // TODO only wait if this is not a deep sleep wakeup, otherwise just do
+    //      a dummy read.
     wait_for_ready();
     rtc::icsc::rtcic::set(true);
     nvic::iser::set(1 << nvic::RTC);
