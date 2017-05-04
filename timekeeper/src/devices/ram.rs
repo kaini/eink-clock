@@ -1,4 +1,5 @@
 use rawhw::{ssp, syscon, ioconfig};
+use cpu::usleep;
 
 use rawhw::ioconfig::pio0_14 as sck_ioconfig;
 use rawhw::ioconfig::pio0_15 as ssel_ioconfig;
@@ -29,6 +30,9 @@ pub unsafe fn init() {
     ramon_ioconfig::mode::set(ioconfig::Pullup::Disabled);
     ramon_ioconfig::drv::set(true);
     ramon_gpio::dir::set_bit(RAMON_BIT);
+    // Reset the RAM.
+    ramon_gpio::clr::set(1 << RAMON_BIT);
+    usleep(1000);
     ramon_gpio::set::set(1 << RAMON_BIT);
 
     syscon::sspclkdiv::div::set(2);

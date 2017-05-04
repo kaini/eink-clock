@@ -77,12 +77,9 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         }
     }
 
-    let eink_start_time = clock::current_time();
     eink::render(|scanline, buffer| {
         ram::get_column(scanline, buffer);
     });
-    let eink_end_time = clock::current_time();
-    debug!("E-Ink Time: {} s", eink_end_time - eink_start_time);
 
     clock::set_interrupt_time(((now_s / 60) + 1) * 60);
     let now_serialized = if now_s > RESYNC_TIME && now.hour() == 4 {
