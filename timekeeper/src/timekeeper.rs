@@ -24,7 +24,7 @@ mod rawhw;
 mod devices;
 mod app;
 
-use devices::{cpu, eink, flash, dcf77, clock};
+use devices::{cpu, eink, flash, dcf77, clock, ram};
 use app::datetime::Datetime;
 use app::graphics::{Graphic, HorizontalAlign, Color};
 use app::eutime::central_localtime;
@@ -68,15 +68,18 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     graphic.add_line(300, 300, hour_x, hour_y, 30);
     graphic.finish();
 
-    let eink_start_time = clock::current_time();
-    eink::render(|_scanline, buffer| {
-        for y in 0..(eink::SCANLINE_WIDTH as usize / 8) {
-            let mut result = 0;
-            for p in 0..8 {
-                result |= if graphic.render_pixel() == Color::BLACK { 1 } else { 0 } << p;
+    ram::zero();
+    for x in 0..600 {
+        for y in 0..800 {
+            if graphic.render_pixel() == Color::BLACK {
+                ram::set(x, y);
             }
-            buffer[y] = result;
         }
+    }
+
+    let eink_start_time = clock::current_time();
+    eink::render(|scanline, buffer| {
+        ram::get_column(scanline, buffer);
     });
     let eink_end_time = clock::current_time();
     debug!("E-Ink Time: {} s", eink_end_time - eink_start_time);
@@ -222,6 +225,7 @@ pub extern fn reset_handler() {
         eink::init();
         dcf77::init();
         clock::init();
+        ram::init();
 
         // Let's go
         main(0, ptr::null());
