@@ -17,6 +17,9 @@ const X_SIZE: usize = 600;
 const Y_SIZE: usize = 800;
 const Y_BYTES: usize = Y_SIZE / 8;
 
+static mut CACHED_ADDRESS: u16 = 0xFFFF;
+static mut CACHED_VALUE: u8 = 0x00;
+
 pub unsafe fn init() {
     sck_ioconfig::func::set(0x2 /* SSP */);
     sck_ioconfig::mode::set(ioconfig::Pullup::Disabled);
@@ -53,50 +56,30 @@ pub fn zero() {
             write(0x00);
         }
         read_until_idle();
+        CACHED_VALUE = 0;
     }
 }
 
 pub fn set(x: usize, y: usize) {
     let (address, bit) = xy_to_address(x, y);
-    
-    let mut byte = unsafe {
-        write(READ_CMD);
-        write((address >> 8) as u8);
-        write(address as u8);
-        write(0x00);
-        read_bytes(3);
-        read_byte()
-    };
-
-    if (byte & bit) == 0 {
-        byte |= bit;
-        unsafe {
-            write(WRITE_CMD);
-            write((address >> 8) as u8);
-            write(address as u8);
-            write(byte);
-            read_bytes(4);
-        }
-    }
-}
-
-pub fn get(x: usize, y: usize) -> bool {
-    let (address, bit) = xy_to_address(x, y);
-
     unsafe {
-        write(READ_CMD);
-        write((address >> 8) as u8);
-        write(address as u8);
-        write(0x00);
-        read_bytes(3);
-        (read_byte() & bit) != 0
+        if address != CACHED_ADDRESS {
+            flush_cache();
+            CACHED_ADDRESS = address;
+            refresh_cache();
+        }
+        CACHED_VALUE |= bit;
     }
 }
 
 pub fn get_column(x: usize, dst: &mut [u8]) {
     let (address, _) = xy_to_address(x, 0);
-
     unsafe {
+        if CACHED_ADDRESS != 0xFFFF {
+            flush_cache();
+            CACHED_ADDRESS = 0xFFFF;
+        }
+
         write(READ_CMD);
         write((address >> 8) as u8);
         write(address as u8);
@@ -113,6 +96,27 @@ pub fn get_column(x: usize, dst: &mut [u8]) {
         dst[Y_BYTES - 3] = read_byte();
         dst[Y_BYTES - 2] = read_byte();
         dst[Y_BYTES - 1] = read_byte();
+    }
+}
+
+fn flush_cache() {
+    unsafe {
+        write(WRITE_CMD);
+        write((CACHED_ADDRESS >> 8) as u8);
+        write(CACHED_ADDRESS as u8);
+        write(CACHED_VALUE);
+        read_bytes(4);
+    }
+}
+
+fn refresh_cache() {
+    unsafe {
+        write(READ_CMD);
+        write((CACHED_ADDRESS >> 8) as u8);
+        write(CACHED_ADDRESS as u8);
+        write(0x00);
+        read_bytes(3);
+        CACHED_VALUE = read_byte();
     }
 }
 
