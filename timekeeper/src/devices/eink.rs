@@ -65,10 +65,10 @@ const DSPH_BIT: u32 = 23;
 const WHITE: u8 = 0b10;
 const BLACK: u8 = 0b01;
 
-pub const SCANLINES: i32 = 600;
-pub const SCANLINE_WIDTH: i32 = 800;
-pub const BUFFER_BYTES: usize = (SCANLINE_WIDTH / 8) as usize;
-static mut BUFFER: [u8; BUFFER_BYTES] = [0; BUFFER_BYTES];
+pub const SCANLINES: usize = 600;
+pub const SCANLINE_WIDTH: usize = 800;
+pub const SCANLINE_BYTES: usize = SCANLINE_WIDTH / 8;
+static mut BUFFER: [u8; SCANLINE_BYTES] = [0; SCANLINE_BYTES];
 
 macro_rules! setup_output {
     ($ioconfig:ident, $gpio:ident, $bit:expr) => ({
@@ -210,7 +210,7 @@ unsafe fn set_four_pixels(pixels: &[u8; 4]) {
 }
 
 pub fn render<Draw>(mut draw: Draw)
-        where Draw: FnMut(i32, &mut [u8; BUFFER_BYTES]) {
+        where Draw: FnMut(usize, &mut [u8; SCANLINE_BYTES]) {
     unsafe {
         enable();
         draw_mode_on();

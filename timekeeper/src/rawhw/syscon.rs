@@ -106,4 +106,7 @@ register_block! {
     gpdata1 0x40038008 => { full; }
     gpdata2 0x4003800C => { full; }
     gpdata3 0x40038010 => { full; }
+    sspclkdiv 0x40048094 => {
+        0,7, div, u8;
+    }
 }
