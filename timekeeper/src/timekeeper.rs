@@ -6,7 +6,6 @@
 #![feature(asm)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-#![feature(vec_remove_item)]
 #![allow(dead_code)]
 #![cfg_attr(not(test), no_builtins)]
 
@@ -26,7 +25,8 @@ mod app;
 
 use devices::{cpu, eink, flash, dcf77, clock, ram};
 use app::datetime::Datetime;
-use app::graphics::{Graphic, HorizontalAlign, Color};
+use app::graphics;
+use app::graphics::HorizontalAlign;
 use app::eutime::central_localtime;
 use core::ptr;
 use core::f32::consts::PI;
@@ -45,39 +45,37 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let now_s = clock::current_time();
     let now = { let mut now = zero_time.clone(); now.offset_seconds(now_s); central_localtime(&now) };
 
+    ram::zero();
+    let set_pixel = &|x, y| {
+        if 0 <= x && x < 600 && 0 <= y && y < 800 {
+            ram::set(599 - x as usize, y as usize);
+        }
+    };
+
+    graphics::render_image(
+        set_pixel,
+        flash::CLOCK, flash::CLOCK_W, flash::CLOCK_H,
+        0, 0,
+        0, 0, flash::CLOCK_W, flash::CLOCK_H);
     let status_line = format!("RTC: {}    LAST SYNC: {}.{}.{} {:02}:{:02}",
         now_s,
         zero_time.day(), zero_time.month(), zero_time.year(),
         zero_time.hour(), zero_time.minute());
-
-    let mut graphic = Graphic::new(600, 800);
-    graphic.add_image(
-        flash::CLOCK, 0, 0, flash::CLOCK_W, flash::CLOCK_H,
-        0, 0, flash::CLOCK_W, flash::CLOCK_H);
-    graphic.add_text(&status_line, &flash::SMALL_FONT, 597, 775, HorizontalAlign::RIGHT);
-    graphic.add_text(
+    graphics::render_text(set_pixel, &status_line, &flash::SMALL_FONT, 597, 775, HorizontalAlign::RIGHT);
+    graphics::render_text(
+        set_pixel,
         &format!("{} {}.{}.", WEEKDAYS[now.weekday() as usize], now.day(), now.month()),
         &flash::LARGE_FONT, 300, 600, HorizontalAlign::CENTER);
     let minute_angle = -PI / 30.0 * now.minute() as f32 - PI / 2.0;
     let minute_x = 300 + round(-cos(minute_angle) * 280.0) as i32;
     let minute_y = 300 + round(sin(minute_angle) * 280.0) as i32;
-    graphic.add_line(300, 300, minute_x, minute_y, 20);
+    graphics::render_line(set_pixel, 300, 300, minute_x, minute_y, 20);
     let hour_angle = -PI / 360.0 * ((now.hour() % 12) * 60 + now.minute()) as f32 - PI / 2.0;
     let hour_x = 300 + round(-cos(hour_angle) * 200.0) as i32;
     let hour_y = 300 + round(sin(hour_angle) * 200.0) as i32;
-    graphic.add_line(300, 300, hour_x, hour_y, 30);
-    graphic.finish();
+    graphics::render_line(set_pixel, 300, 300, hour_x, hour_y, 30);
 
-    ram::zero();
-    for x in 0..600 {
-        for y in 0..800 {
-            if graphic.render_pixel() == Color::BLACK {
-                ram::set(x, y);
-            }
-        }
-    }
-
-    eink::render(|scanline, buffer| {
+    eink::render(&|scanline, buffer| {
         ram::get_column(scanline, buffer);
     });
 
@@ -96,7 +94,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 /// Receives the time and returns the new zero time.
 #[cfg(not(feature = "fake_time"))]
 fn adjust_time() -> Datetime {
-    eink::render(|_scanline, buffer| {
+    eink::render(&|_scanline, buffer| {
         for b in buffer.iter_mut() {
             *b = 0;
         }
@@ -118,7 +116,7 @@ fn adjust_time() -> Datetime {
 
 #[cfg(feature = "fake_time")]
 fn adjust_time() -> Datetime {
-    eink::render(|_scanline, buffer| {
+    eink::render(&|_scanline, buffer| {
         for b in buffer.iter_mut() {
             *b = 0;
         }
@@ -293,6 +291,11 @@ pub unsafe extern fn __aeabi_memclr4(dest: *mut u8, n: usize) {
 pub unsafe extern fn __aeabi_memmove4(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     rlibc::memmove(dest, src, n)
 }
+
+#[cfg(not(test))]
+#[no_mangle]
+#[allow(non_upper_case_globals)]
+pub static mut __errno: i32 = 0;
 
 fn sin(f: f32) -> f32 {
     unsafe { sinf32(f) }

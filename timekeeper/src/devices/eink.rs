@@ -209,8 +209,8 @@ unsafe fn set_four_pixels(pixels: &[u8; 4]) {
     usleep(1);
 }
 
-pub fn render<Draw>(mut draw: Draw)
-        where Draw: FnMut(usize, &mut [u8; SCANLINE_BYTES]) {
+pub fn render<Draw>(draw: &Draw)
+        where Draw: Fn(usize, &mut [u8; SCANLINE_BYTES]) {
     unsafe {
         enable();
         draw_mode_on();
