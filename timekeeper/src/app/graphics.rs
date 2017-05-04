@@ -1,290 +1,245 @@
-use collections::vec::Vec;
-use alloc::boxed::Box;
+// For triangle rasterization ideas see http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
+// For Bresenham's line rasterization algorithm see https://de.wikipedia.org/wiki/Bresenham-Algorithmus#Kompakte_Variante
 use devices::flash::Font;
-use core::cmp::{min, max};
+use core::intrinsics::{sqrtf32, roundf32};
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Color {
-    TRANSPARENT,
-    BLACK,
+pub enum HorizontalAlign { 
+    LEFT,                  
+    CENTER,                
+    RIGHT,                 
 }
 
-trait Renderable {
-    fn render_pixel(&self, x: i32, y: i32) -> Color;
-    fn bounding_box(&self) -> (i32, i32, i32, i32);  // Returns (x, y, w, h)
-}
-
-struct Image {
-    source: &'static [u8],
-    source_x: i32,
-    source_y: i32,
-    source_width: i32,
-    dest_x: i32,
-    dest_y: i32,
-    width: i32,
-    height: i32,
-}
-
-impl Renderable for Image {
-    fn render_pixel(&self, x: i32, y: i32) -> Color {
-        if self.dest_x <= x && x < self.dest_x + self.width &&
-           self.dest_y <= y && y < self.dest_y + self.height {
-            let source_bit = ((self.source_y + y - self.dest_y) * self.source_width + self.source_x + x - self.dest_x) as usize;
-            if self.source[source_bit / 8] & (0b1000_0000 >> (source_bit % 8)) == 0 {
-                Color::BLACK
-            } else {
-                Color::TRANSPARENT
+pub fn render_image<SP: Fn(i32, i32)>(set_pixel: &SP,
+                                      image: &[u8], image_w: i32, _image_h: i32,
+                                      source_x: i32, source_y: i32,
+                                      dest_x: i32, dest_y: i32, w: i32, h: i32) {
+    for x in 0..w {
+        for y in 0..h {
+            let image_bit = ((source_y + y) * image_w + source_x + x) as usize;
+            if image[image_bit / 8] & (0b1000_0000 >> (image_bit % 8)) == 0 {
+                set_pixel(dest_x + x, dest_y + y);
             }
+        }
+    }
+}
+
+
+
+pub fn render_triangle<SP: Fn(i32, i32)>(set_pixel: &SP, ax: i32, ay: i32, bx: i32, by: i32, cx: i32, cy: i32) {
+    // Make a the left point, b the center point and c the right point.
+    if bx < ax || cx < ax {
+        if bx < cx {
+            return render_triangle(set_pixel, bx, by, ax, ay, cx, cy);
         } else {
-            Color::TRANSPARENT
+            return render_triangle(set_pixel, cx, cy, bx, by, ax, ay);
         }
     }
-
-    fn bounding_box(&self) -> (i32, i32, i32, i32) {
-        (self.dest_x, self.dest_y, self.width, self.height)
-    }
-}
-
-// ax + by + c = 0
-#[derive(Debug)]
-struct Line {
-    x1: i32,
-    y1: i32,
-    x2: i32,
-    y2: i32,
-    d: i32,
-
-    a: i32,  // a = y2 - y1
-    b: i32,  // b = x2 - x1
-    c: i32,  // c = x2*y1 - y2*x1
-    dist_test: i32,  // d²(a² + b²)
-
-    minx_test: i32,  // min(x1, x2) * (a² + b²) + a*c
-    maxx_test: i32,  // max(x1, x2) * (a² + b²) + a*c
-    miny_test: i32,  // min(y1, y2) * (a² + b²)
-    maxy_test: i32,  // max(y1, y2) * (a² + b²)
-}
-
-impl Renderable for Line {
-    fn render_pixel(&self, x: i32, y: i32) -> Color {
-        // First test the distance to the unbounded line
-        //     |a*x + b*y + c| / sqrt(a² + b²) <= d
-        // <=> (a*x + b*y + c)² / (a² + b²) <= d²
-        // <=> (a*x + b*y + c)² <= d²(a² + b²)
-        let q = self.a * x + self.b * y + self.c;
-        // TODO The next two lines are using `as i64` instead of an overflow-checking
-        //      multiply because of LLVM bug #00000.
-        let q = q as i64 * q as i64;
-        // Test if the point is too far away from the line
-        if q > self.dist_test as i64 {
-            return Color::TRANSPARENT;
-        }
-        // If the point is inside the (x1,y1)-(x2,y2) box it is surely on the
-        // line, because the endings are never in this box.
-        if min(self.x1, self.x2) <= x && x <= max(self.x1, self.x2) &&
-           min(self.y1, self.y2) <= y && y <= max(self.y1, self.y2) {
-            return Color::BLACK;
-        }
-        // Now test if the projection on the line is between the start and endpoint.
-        //     min_x <= (b(b*x - a*y) - a*c) / (a² + b²) <= max_x
-        // <=> min_x(a² + b²) <= b(b*x - a*y) - a*c <= max_x(a² + b²)
-        // <=> min_x(a² + b²) + a*c <= b(b*x - a*y) <= max_x(a² + b²) + a*c
-        // Similar for y:
-        //     min_y <= (a(a*y - b*x) - b*c) / (a² + b²) <= max_y
-        // <=> min_y(a² + b²) <= a(a*y - b*x) - b*c <= max_y(a² + b²)
-        // <=> min_y(a² + b²) + b*c <= a(a*y - b*x) <= max_y(a² + b²) + b*c
-        let x_test = self.b * (self.b * x - self.a * y);
-        let y_test = self.a * (self.a * y - self.b * x);
-        if self.minx_test <= x_test && x_test <= self.maxx_test &&
-           self.miny_test <= y_test && y_test <= self.maxy_test {
-            return Color::BLACK
-        }
-        // The pixel is not relevant for this line
-        Color::TRANSPARENT
+    if cx < bx {
+        return render_triangle(set_pixel, ax, ay, cx, cy, bx, by);
     }
 
-    fn bounding_box(&self) -> (i32, i32, i32, i32) {
-        let minx = min(self.x1, self.x2) - self.d - 1;
-        let maxx = max(self.x1, self.x2) + self.d + 1;
-        let miny = min(self.y1, self.y2) - self.d - 1;
-        let maxy = max(self.y1, self.y2) + self.d + 1;
-        (minx, miny, maxx - minx + 1, maxy - miny + 1)
-    }
-}
-
-pub enum HorizontalAlign {
-    LEFT,
-    CENTER,
-    RIGHT,
-}
-
-struct ElementEntry {
-    value: i32,
-    index: usize,
-}
-
-pub struct Graphic {
-    elements: Vec<Box<Renderable>>,
-    width: i32,
-    height: i32,
-
-    x_starts: Vec<ElementEntry>,
-    x_ends: Vec<ElementEntry>,
-    x_starts_at: usize,
-    x_ends_at: usize,
-    x_at: i32,
-    x_active: Vec<usize>,
-
-    y_at: i32,
-}
-
-impl Graphic {
-    pub fn new(w: i32, h: i32) -> Graphic {
-        Graphic {
-            elements: Vec::new(),
-            width: w,
-            height: h,
-
-            x_starts: Vec::new(),
-            x_ends: Vec::new(),
-            x_starts_at: 0,
-            x_ends_at: 0,
-            x_at: w - 1,
-            x_active: Vec::new(),
-
-            y_at: 0,
+    // Render the first half of the triangle, i.e., consume ab.
+    let mut ab = Bresenham::new(ax, ay, bx, by);
+    let mut ac = Bresenham::new(ax, ay, cx, cy);
+    let mut prev_x = ax;
+    let mut ab_done = false;
+    let mut ac_done = false;
+    while !(ab_done || ac_done) {
+        // Advance ab until the next x step.
+        let mut ab_step = ab.step();
+        while !ab_step.last && ab_step.x == prev_x {
+            set_pixel(ab_step.x, ab_step.y);
+            ab_step = ab.step();
         }
+        ab_done |= ab_step.last;
+
+        // Advance ac until the next x step.
+        let mut ac_step = ac.step();
+        while !ac_step.last && ac_step.x == prev_x {
+            set_pixel(ac_step.x, ac_step.y);
+            ac_step = ac.step();
+        }
+        ac_done |= ac_step.last;
+
+        // ab and ac are now advanced to the same x.
+        fill_y(set_pixel, ab_step.x, ab_step.y, ac_step.y);
+        prev_x = ab_step.x;
     }
 
-    pub fn add_text(&mut self, text: &str, font: &Font<'static>, x: i32, y: i32, halign: HorizontalAlign) {
-        let mut x_length = 0;
-        for c in text.chars() {
-            if let Ok(index) = font.chars.binary_search_by_key(&(c as u32), |ref chr| chr.chr) {
-                x_length += font.chars[index].xadvance as i32;
-            }
-        }
-
-        let mut x_at = match halign {
-            HorizontalAlign::LEFT => { x },
-            HorizontalAlign::CENTER => { x - x_length / 2 },
-            HorizontalAlign::RIGHT => { x - x_length }, 
-        };
-        let mut prev_char = 0;
-        for c in text.chars() {
-            if let Ok(index) = font.chars.binary_search_by_key(&(c as u32), |ref chr| chr.chr) {
-                x_at += if let Ok(index) = font.kerning_pairs.binary_search_by_key(&(prev_char, c as u32), |ref k| k.pair) {
-                    font.kerning_pairs[index].amount as i32
-                } else {
-                    0
-                };
-                let ref chr = font.chars[index];
-                self.add_image(
-                    font.texture, chr.x as i32, chr.y as i32, font.texture_w, font.texture_h,
-                    x_at + chr.xoffset as i32, y + chr.yoffset as i32, chr.width as i32, chr.height as i32);
-                x_at += chr.xadvance as i32;
-                prev_char = chr.chr;
-            }
-        }
-    }
-
-    pub fn add_image(&mut self,
-            source: &'static [u8], source_x: i32, source_y: i32, source_width: i32, _source_height: i32,
-            dest_x: i32, dest_y: i32, width: i32, height: i32) {
-        self.add_element(Box::new(Image {
-            source: source,
-            source_x: source_x,
-            source_y: source_y,
-            source_width: source_width,
-            dest_x: dest_x,
-            dest_y: dest_y,
-            width: width,
-            height: height,
-        }));
-    }
-
-    pub fn add_line(&mut self, x1: i32, y1: i32, x2: i32, y2: i32, thickness: i32) {
-        let d = if thickness > 1 { thickness / 2  } else { 1 };
-        let a = y2 - y1;
-        let b = x1 - x2;
-        let c = x2 * y1 - y2 * x1;
-        let sqsum = a * a + b * b;
-        self.add_element(Box::new(Line {
-            x1: x1,
-            y1: y1,
-            x2: x2,
-            y2: y2,
-            d: d,
-            a: a,
-            b: b,
-            c: c,
-            dist_test: d * d * sqsum,
-            minx_test: min(x1, x2) * sqsum + a * c,
-            maxx_test: max(x1, x2) * sqsum + a * c,
-            miny_test: min(y1, y2) * sqsum + b * c,
-            maxy_test: max(y1, y2) * sqsum + b * c,
-        }));
-    }
-
-    fn add_element(&mut self, renderable: Box<Renderable>) {
-        let index = self.elements.len();
-        
-        // Clip the bounding box
-        let (mut bx, mut by, mut bw, mut bh) = renderable.bounding_box();
-        if bx < 0 {
-            bw += bx;
-            bx = 0;
-        }
-        if by < 0 {
-            bh += by;
-            by = 0;
-        }
-        if bx + bw > self.width {
-            bw = self.width - bx;
-        }
-        if by + bh > self.height {
-            bh = self.height - by;
-        }
-        if bw <= 0 || bh <= 0 {
-            return;
-        }
-
-        self.x_starts.push(ElementEntry { value: bx + bw - 1, index: index });
-        self.x_ends.push(ElementEntry { value: bx - 1, index: index });
-        self.elements.push(renderable);
-    }
-
-    pub fn finish(&mut self) {
-        self.x_starts.sort_by_key(|e| -e.value);
-        self.x_ends.sort_by_key(|e| -e.value);
-    }
-
-    // Returns the pixels from right to left from top to bottom.
-    pub fn render_pixel(&mut self) -> Color {
-        if self.y_at == 0 {
-            while self.x_starts_at < self.x_starts.len() && self.x_starts[self.x_starts_at].value == self.x_at {
-                self.x_active.push(self.x_starts[self.x_starts_at].index);
-                self.x_starts_at += 1;
-            }
-            while self.x_ends_at < self.x_ends.len() && self.x_ends[self.x_ends_at].value == self.x_at {
-                self.x_active.remove_item(&self.x_ends[self.x_ends_at].index);
-                self.x_ends_at += 1;
-            }
-        }
-
-        let mut result = Color::TRANSPARENT;
-        for &element_index in &self.x_active {
-            if self.elements[element_index].render_pixel(self.x_at, self.y_at) == Color::BLACK {
-                result = Color::BLACK;
+    // Finish ab if it is not completely finished.
+    if !ab_done {
+        loop {
+            let ab_step = ab.step();
+            set_pixel(ab_step.x, ab_step.y);
+            if ab_step.last {
                 break;
             }
         }
-
-        self.y_at += 1;
-        if self.y_at == self.height {
-            self.x_at -= 1;
-            self.y_at = 0;
-        }
-
-        result
     }
+
+    // Draw the second half of the triangle, i.e., consume bc.
+    let mut bc = Bresenham::new(bx, by, cx, cy);
+    let mut bc_done = false;
+    while !(ac_done || bc_done) {
+        // Advance bc until the next x step.
+        let mut bc_step = bc.step();
+        while !bc_step.last && bc_step.x == prev_x {
+            set_pixel(bc_step.x, bc_step.y);
+            bc_step = bc.step();
+        }
+        bc_done |= bc_step.last;
+
+        // Advance ac until the next x step.
+        let mut ac_step = ac.step();
+        while !ac_step.last && ac_step.x == prev_x {
+            set_pixel(ac_step.x, ac_step.y);
+            ac_step = ac.step();
+        }
+        ac_done |= ac_step.last;
+
+        // ab and ac are now advanced to the same x.
+        fill_y(set_pixel, bc_step.x, bc_step.y, ac_step.y);
+        prev_x = bc_step.x;
+    }
+
+    // Finish bc if it is not completely finished.
+    if !bc_done {
+        loop {
+            let bc_step = bc.step();
+            set_pixel(bc_step.x, bc_step.y);
+            if bc_step.last {
+                break;
+            }
+        }
+    }
+
+    // Finish ac if it is not completely finished.
+    if !ac_done {
+        loop {
+            let ac_step = ac.step();
+            set_pixel(ac_step.x, ac_step.y);
+            if ac_step.last {
+                break;
+            }
+        }
+    }
+}
+
+pub fn render_line<SP: Fn(i32, i32)>(set_pixel: &SP, x0: i32, y0: i32, x1: i32, y1: i32, width: i32) {
+    // Get a normal vector by flipping x and y and negating x thereafter.
+    let norm_x = (y0 - y1) as f32;
+    let norm_y = (x1 - x0) as f32;
+    let norm_factor = (width as f32) / (2.0 * sqrt(norm_x * norm_x + norm_y * norm_y));
+    let norm_x = round(norm_x * norm_factor) as i32;
+    let norm_y = round(norm_y * norm_factor) as i32;
+    render_triangle(set_pixel, x0 - norm_x, y0 - norm_y, x1 - norm_x, y1 - norm_y, x0 + norm_x, y0 + norm_y);
+    render_triangle(set_pixel, x0 + norm_x, y0 + norm_y, x1 + norm_x, y1 + norm_y, x1 - norm_x, y1 - norm_y);
+}
+
+pub fn render_text<SP: Fn(i32, i32)>(set_pixel: &SP, text: &str, font: &Font<'static>, x: i32, y: i32, halign: HorizontalAlign) {
+    let mut x_length = 0;
+    for c in text.chars() {
+        if let Ok(index) = font.chars.binary_search_by_key(&(c as u32), |ref chr| chr.chr) {
+            x_length += font.chars[index].xadvance as i32;
+        }
+    }
+
+    let mut x_at = match halign {
+        HorizontalAlign::LEFT => { x },
+        HorizontalAlign::CENTER => { x - x_length / 2 },
+        HorizontalAlign::RIGHT => { x - x_length }, 
+    };
+    let mut prev_char = 0;
+    for c in text.chars() {
+        if let Ok(index) = font.chars.binary_search_by_key(&(c as u32), |ref chr| chr.chr) {
+            x_at += if let Ok(index) = font.kerning_pairs.binary_search_by_key(&(prev_char, c as u32), |ref k| k.pair) {
+                font.kerning_pairs[index].amount as i32
+            } else {
+                0
+            };
+            let ref chr = font.chars[index];
+            render_image(
+                set_pixel,
+                font.texture, font.texture_w, font.texture_h,
+                chr.x as i32, chr.y as i32, 
+                x_at + chr.xoffset as i32, y + chr.yoffset as i32, chr.width as i32, chr.height as i32);
+            x_at += chr.xadvance as i32;
+            prev_char = chr.chr;
+        }
+    }
+}
+
+fn fill_y<SP: Fn(i32, i32)>(set_pixel: &SP, x: i32, y0: i32, y1: i32) {
+    if y0 < y1 {
+        for y in y0..(y1 + 1) {
+            set_pixel(x, y);
+        }
+    } else {
+        for y in y1..(y0 + 1) {
+            set_pixel(x, y);
+        }
+    }
+}
+
+struct Bresenham {
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+    dx: i32,
+    sx: i32,
+    dy: i32,
+    sy: i32,
+    err: i32,
+    first: bool,
+}
+
+struct BresenhamStep {
+    x: i32,
+    y: i32,
+    last: bool,
+}
+
+impl Bresenham {
+    fn new(x0: i32, y0: i32, x1: i32, y1: i32) -> Bresenham {
+        let dx = (x1 - x0).abs();
+        let dy = -(y1 - y0).abs();
+        Bresenham {
+            x0: x0,
+            y0: y0,
+            x1: x1,
+            y1: y1,
+            dx: dx,
+            sx: if x0 < x1 { 1 } else { -1 },
+            dy: dy,
+            sy: if y0 < y1 { 1 } else { -1 },
+            err: dx + dy,
+            first: true,
+        }
+    }
+
+    fn step(&mut self) -> BresenhamStep {
+        if self.first {
+            self.first = false;
+        } else {
+            let e2 = 2 * self.err;
+            if e2 > self.dy {
+                self.err += self.dy;
+                self.x0 += self.sx;
+            }
+            if e2 < self.dx {
+                self.err += self.dx;
+                self.y0 += self.sy;
+            }
+        }
+        BresenhamStep { x: self.x0, y: self.y0, last: self.x0 == self.x1 && self.y0 == self.y1 }
+    }
+}
+
+fn round(f: f32) -> f32 {
+    unsafe { roundf32(f) }
+}
+
+fn sqrt(f: f32) -> f32 {
+    unsafe { sqrtf32(f) }
 }
