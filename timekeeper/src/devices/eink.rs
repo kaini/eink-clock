@@ -170,7 +170,8 @@ unsafe fn end_frame() {
 }
 
 unsafe fn begin_line() {
-    doe_gpio::set::set(1 << DOE_BIT);
+    // This line is only required if you need a long time to calculate each scanline (1 of 2)
+    //doe_gpio::set::set(1 << DOE_BIT);
     dsph_gpio::clr::set(1 << DSPH_BIT);
     usleep(1);
 }
@@ -187,7 +188,9 @@ unsafe fn end_line() {
     dckv_gpio::set::set(1 << DCKV_BIT);
     usleep(1);
     doe_gpio::clr::set(1 << DOE_BIT);
-    usleep(200);
+    // This time controls the load and therefore might induce a hearable frequency
+    // on the inductors of a switching power supply.
+    // usleep(1);  
     doe_gpio::set::set(1 << DOE_BIT);
     usleep(1);
     dle_gpio::set::set(1 << DLE_BIT);
@@ -195,7 +198,8 @@ unsafe fn end_line() {
     dle_gpio::clr::set(1 << DLE_BIT);
     usleep(1);
     
-    doe_gpio::clr::set(1 << DOE_BIT);
+    // This line is only required if you need a long time to calculate each scanline (2 of 2)
+    //doe_gpio::clr::set(1 << DOE_BIT);
 }
 
 // Use the constants NOOP, WHITE, BLACK.
