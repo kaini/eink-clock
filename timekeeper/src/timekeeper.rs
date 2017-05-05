@@ -37,21 +37,27 @@ const WEEKDAYS: [&str; 7] = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
+    let set_pixel = &|x, y| {
+        if 0 <= x && x < 600 && 0 <= y && y < 800 {
+            ram::set(599 - x as usize, y as usize);
+        }
+    };
+    
     let zero_time = if let Ok(zt) = Datetime::from_bits(cpu::get_data(0) as u64 | ((cpu::get_data(1) as u64) << 32)) {
         zt
     } else {
+        ram::zero();
+        graphics::render_triangle(set_pixel, 200, 400, 400, 400, 300, 300);
+        graphics::render_triangle(set_pixel, 200, 400, 400, 400, 300, 500);
+        eink::render(&|scanline, buffer| {
+            ram::get_column(scanline, buffer);
+        });
         adjust_time()
     };
     let now_s = clock::current_time();
     let now = { let mut now = zero_time.clone(); now.offset_seconds(now_s); central_localtime(&now) };
 
     ram::zero();
-    let set_pixel = &|x, y| {
-        if 0 <= x && x < 600 && 0 <= y && y < 800 {
-            ram::set(599 - x as usize, y as usize);
-        }
-    };
-
     graphics::render_image(
         set_pixel,
         flash::CLOCK, flash::CLOCK_W, flash::CLOCK_H,
@@ -94,12 +100,6 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 /// Receives the time and returns the new zero time.
 #[cfg(not(feature = "fake_time"))]
 fn adjust_time() -> Datetime {
-    eink::render(&|_scanline, buffer| {
-        for b in buffer.iter_mut() {
-            *b = 0;
-        }
-    });
-
     loop {
         let payload = dcf77::receive();
         match Datetime::from_dcf77(&payload) {
@@ -116,12 +116,6 @@ fn adjust_time() -> Datetime {
 
 #[cfg(feature = "fake_time")]
 fn adjust_time() -> Datetime {
-    eink::render(&|_scanline, buffer| {
-        for b in buffer.iter_mut() {
-            *b = 0;
-        }
-    });
-
     clock::reset_time();
     return Datetime::new(2000, 1, 1, 15, 37, 0, 3600).unwrap();
 }
