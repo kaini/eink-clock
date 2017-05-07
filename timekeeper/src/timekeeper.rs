@@ -35,8 +35,46 @@ use core::intrinsics::{sinf32, cosf32, roundf32};
 const RESYNC_TIME: i32 = 7 * 24 * 60 * 60;  // 7 days
 const WEEKDAYS: [&str; 7] = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
 
+unsafe fn hardware_init() {
+    extern {
+        static mut __bss_start__: u32;
+        static mut __bss_end__: u32;
+        static mut __data_start__: u32;
+        static mut __data_end__: u32;
+        static __data_source_start__: u32;
+    }
+
+    // Disable watchdog timer. This has to happen immediately after startup.
+    ptr::write_volatile(0x40004000 as *mut u32, 0x00);
+    ptr::write_volatile(0x40004008 as *mut u32, 0xAA);
+    ptr::write_volatile(0x40004008 as *mut u32, 0x55);
+
+    // Early init of critical hardware
+    eink::early_init();
+    cpu::early_init();
+
+    // Zero .bss
+    let bss_size = (&__bss_end__ as *const u32 as usize) - (&__bss_start__ as *const u32 as usize);
+    ptr::write_bytes(&mut __bss_start__, 0, bss_size / 4);
+
+    // Copy .data
+    let data_size = (&__data_end__ as *const u32 as usize) - (&__data_start__ as *const u32 as usize);
+    ptr::copy_nonoverlapping(&__data_source_start__, &mut __data_start__, data_size / 4);
+
+    // Init the allocator
+    my_allocator::init();
+
+    // Init other hardware
+    eink::init();
+    dcf77::init();
+    clock::init();
+    ram::init();
+}
+
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
+    unsafe { hardware_init(); }
+
     let set_pixel = &|x, y| {
         if 0 <= x && x < 600 && 0 <= y && y < 800 {
             ram::set(599 - x as usize, y as usize);
@@ -57,16 +95,16 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let now_s = clock::current_time();
     let now = { let mut now = zero_time.clone(); now.offset_seconds(now_s); central_localtime(&now) };
 
+    let status_line = format!("RTC: {}    LAST SYNC: {}.{}.{} {:02}:{:02}",
+        now_s,
+        zero_time.day(), zero_time.month(), zero_time.year(),
+        zero_time.hour(), zero_time.minute());
     ram::zero();
     graphics::render_image(
         set_pixel,
         flash::CLOCK, flash::CLOCK_W, flash::CLOCK_H,
         0, 0,
         0, 0, flash::CLOCK_W, flash::CLOCK_H);
-    let status_line = format!("RTC: {}    LAST SYNC: {}.{}.{} {:02}:{:02}",
-        now_s,
-        zero_time.day(), zero_time.month(), zero_time.year(),
-        zero_time.hour(), zero_time.minute());
     graphics::render_text(set_pixel, &status_line, &flash::SMALL_FONT, 597, 775, HorizontalAlign::RIGHT);
     graphics::render_text(
         set_pixel,
@@ -183,43 +221,7 @@ pub static ISR_VECTORS: [Option<unsafe extern fn()>; 47] = [
 #[cfg(not(test))]
 #[no_mangle]
 pub extern fn reset_handler() {
-    extern {
-        static mut __bss_start__: u32;
-        static mut __bss_end__: u32;
-        static mut __data_start__: u32;
-        static mut __data_end__: u32;
-        static __data_source_start__: u32;
-    }
-
-    unsafe {
-        // Disable watchdog timer. This has to happen immediately after startup.
-        ptr::write_volatile(0x40004000 as *mut u32, 0x00);
-        ptr::write_volatile(0x40004008 as *mut u32, 0xAA);
-        ptr::write_volatile(0x40004008 as *mut u32, 0x55);
-
-        // Early init of critical hardware
-        eink::early_init();
-        cpu::early_init();
-
-        // Zero .bss
-        let bss_size = (&__bss_end__ as *const u32 as usize) - (&__bss_start__ as *const u32 as usize);
-        ptr::write_bytes(&mut __bss_start__, 0, bss_size / 4);
-
-        // Copy .data
-        let data_size = (&__data_end__ as *const u32 as usize) - (&__data_start__ as *const u32 as usize);
-        ptr::copy_nonoverlapping(&__data_source_start__, &mut __data_start__, data_size / 4);
-
-        // Init other hardware & runtime
-        my_allocator::init();
-        eink::init();
-        dcf77::init();
-        clock::init();
-        ram::init();
-
-        // Let's go
-        main(0, ptr::null());
-    }
-
+    main(0, ptr::null());
     panic!("Reset handler has quit");
 }
 
