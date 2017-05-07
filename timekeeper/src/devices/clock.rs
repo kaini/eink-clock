@@ -3,13 +3,7 @@ use rawhw::{rtc, syscon, nvic};
 pub unsafe fn init() {
     syscon::syscfg::rtcclk::set(syscon::RtcClock::OneHz);
     rtc::cr::rtcstart::set(true);
-    if syscon::pcon::dpdflag::get() {
-        // If we wake up from deep power down a dummy read is enough.
-        current_time();
-    } else {
-        // Otherwise we have to wait for three different readings.
-        wait_for_ready();
-    }
+    wait_for_ready();
     rtc::icsc::rtcic::set(true);
     nvic::iser::set(1 << nvic::RTC);
 }
