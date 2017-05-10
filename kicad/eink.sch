@@ -36,7 +36,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 3 5
 Title "E-Ink Clock"
-Date "2017-03-29"
+Date "2017-05-08"
 Rev "1.0"
 Comp ""
 Comment1 ""
