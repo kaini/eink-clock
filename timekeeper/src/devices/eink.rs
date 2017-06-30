@@ -127,7 +127,9 @@ unsafe fn draw_mode_on() {
     dgmode_gpio::set::set(1 << DGMODE_BIT);
     dckv_gpio::set::set(1 << DCKV_BIT);
     dsph_gpio::set::set(1 << DSPH_BIT);
-    usleep(1000);
+    for _ in 0..20 {
+        usleep(10000);
+    }
 }
 
 unsafe fn draw_mode_off() {
